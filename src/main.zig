@@ -4,6 +4,15 @@ const std = @import("std");
 const rl = @import("raylib");
 const BspNode = @import("BspNode.zig");
 
+const split_colors = [_]rl.Color{
+    rl.Color.red,
+    rl.Color.green,
+    rl.Color.blue,
+    rl.Color.purple,
+    rl.Color.orange,
+    rl.Color.magenta,
+};
+
 fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: comptime_int, color: rl.Color) void {
     for (0..screen_width / grid_size) |i| {
         const position: i32 = @intCast(i * grid_size);
@@ -20,14 +29,14 @@ pub fn main() anyerror!void {
     //--------------------------------------------------------------------------------------
     const screenWidth = 1920;
     const screenHeight = 1080;
-    // const grid_size = 10;
+    const grid_size = 10;
 
-    const depth_increase_interval = 0.1;
+    const depth_increase_interval = 0.5;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
 
-    const node = try BspNode.New(screenWidth / 10, screenHeight / 10, 10, 10, allocator);
+    const node = try BspNode.init(screenWidth / 10, screenHeight / 10, 10, 10, allocator, split_colors.len);
     defer arena.deinit();
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
@@ -53,12 +62,12 @@ pub fn main() anyerror!void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(rl.Color.light_gray);
+        rl.clearBackground(rl.Color.black);
 
-        // drawGrid(screenWidth, screenHeight, grid_size, rl.Color.light_gray);
+        drawGrid(screenWidth, screenHeight, grid_size, rl.Color.dark_gray);
 
         const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
-        node.?.draw(rl.Color.red, 10, depth);
+        node.?.draw(&split_colors, 10, depth);
 
         //----------------------------------------------------------------------------------
     }
