@@ -10,7 +10,6 @@ const split_colors = [_]rl.Color{
     rl.Color.blue,
     rl.Color.purple,
     rl.Color.orange,
-    rl.Color.magenta,
 };
 
 fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: comptime_int, color: rl.Color) void {
@@ -27,8 +26,8 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: 
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const screenWidth = 1920;
-    const screenHeight = 1080;
+    const screenWidth = 800;
+    const screenHeight = 600;
     const grid_size = 10;
 
     const depth_increase_interval = 0.5;
