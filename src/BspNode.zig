@@ -20,6 +20,11 @@ max_x: u32,
 min_y: u32,
 max_y: u32,
 
+up_nodes: std.ArrayList(*Self),
+down_nodes: std.ArrayList(*Self),
+left_nodes: std.ArrayList(*Self),
+right_nodes: std.ArrayList(*Self),
+
 splitted_axis: ?SplitAxis,
 
 pub fn init(width: u32, height: u32, min_width: u32, min_height: u32, allocator: std.mem.Allocator, max_depth: u32) !?*Self {
@@ -60,7 +65,6 @@ fn create_node(min_x: u32, max_x: u32, min_y: u32, max_y: u32, min_width: u32, m
             rnd.boolean()
         else
             can_split_x;
-        // if (rnd.boolean()) can_split_x else !can_split_y;
 
         if (is_x_splitted_axis) {
             splitted_axis = SplitAxis.x;
@@ -90,9 +94,46 @@ fn create_node(min_x: u32, max_x: u32, min_y: u32, max_y: u32, min_width: u32, m
         .min_y = min_y,
         .max_y = max_y,
         .splitted_axis = splitted_axis,
+        .up_nodes = std.ArrayList(*Self).init(allocator),
+        .down_nodes = std.ArrayList(*Self).init(allocator),
+        .left_nodes = std.ArrayList(*Self).init(allocator),
+        .right_nodes = std.ArrayList(*Self).init(allocator),
         .first_child = first_child,
         .second_child = second_child,
     };
+
+    if (splitted_axis) |axis| switch (axis) {
+        .x => {
+            if (first_child) |child| {
+                try node.*.left_nodes.appendSlice(child.left_nodes.items);
+                try node.*.up_nodes.appendSlice(child.up_nodes.items);
+                try node.*.down_nodes.appendSlice(child.down_nodes.items);
+            }
+            if (second_child) |child| {
+                try node.*.right_nodes.appendSlice(child.right_nodes.items);
+                try node.*.up_nodes.appendSlice(child.up_nodes.items);
+                try node.*.down_nodes.appendSlice(child.down_nodes.items);
+            }
+        },
+        .y => {
+            if (first_child) |child| {
+                try node.*.up_nodes.appendSlice(child.up_nodes.items);
+                try node.*.left_nodes.appendSlice(child.left_nodes.items);
+                try node.*.right_nodes.appendSlice(child.right_nodes.items);
+            }
+            if (second_child) |child| {
+                try node.*.down_nodes.appendSlice(child.down_nodes.items);
+                try node.*.left_nodes.appendSlice(child.left_nodes.items);
+                try node.*.right_nodes.appendSlice(child.right_nodes.items);
+            }
+        },
+    } else {
+        try node.*.up_nodes.append(node);
+        try node.*.down_nodes.append(node);
+        try node.*.left_nodes.append(node);
+        try node.*.right_nodes.append(node);
+    }
+
     return node;
 }
 

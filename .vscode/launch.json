@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug with lldb",
+            "program": "${workspaceFolder}/zig-out/bin/maze-generator.exe",
+            "args": ["/usr/local/bin/zig"],
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "Debug with cpptools",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin//maze-generator.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/zig-out/bin",
+            "symbolSearchPath": "${workspaceFolder}/zig-out/bin",
+            "environment": [],
+            "externalConsole": false,
+            "logging": {
+                "moduleLoad": false
+            },
+        }
+    ]
+}

@@ -3,13 +3,14 @@
 const std = @import("std");
 const rl = @import("raylib");
 const BspNode = @import("BspNode.zig");
+const Graph = @import("Graph.zig");
 
 const split_colors = [_]rl.Color{
     rl.Color.red,
     rl.Color.green,
-    rl.Color.blue,
-    rl.Color.purple,
-    rl.Color.orange,
+    // rl.Color.blue,
+    // rl.Color.purple,
+    // rl.Color.orange,
 };
 
 fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: comptime_int, color: rl.Color) void {
@@ -30,13 +31,15 @@ pub fn main() anyerror!void {
     const screenHeight = 600;
     const grid_size = 10;
 
-    const depth_increase_interval = 0.5;
+    // const depth_increase_interval = 0.5;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
+    defer arena.deinit();
 
     const node = try BspNode.init(screenWidth / 10, screenHeight / 10, 10, 10, allocator, split_colors.len);
-    defer arena.deinit();
+    var graph = Graph.init(allocator);
+    try graph.buildFromBsp(node.?.*);
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
     rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
@@ -65,8 +68,9 @@ pub fn main() anyerror!void {
 
         drawGrid(screenWidth, screenHeight, grid_size, rl.Color.dark_gray);
 
-        const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
-        node.?.draw(&split_colors, 10, depth);
+        // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
+        node.?.draw(&split_colors, 10, split_colors.len);
+        graph.draw(10, rl.Color.white);
 
         //----------------------------------------------------------------------------------
     }
