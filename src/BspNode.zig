@@ -175,7 +175,7 @@ fn drawNode(self: Self, colors: []const rl.Color, scaling: u32, current_depth: u
         const center_y = min_y + ((max_y - min_y) / 2);
 
         var buf: [10:0]u8 = .{0} ** 10;
-        _ = try std.fmt.bufPrint(&buf, "{X}", .{self.id});
+        _ = try std.fmt.bufPrint(&buf, "{}", .{self.id});
 
         const ptr_to_buf = @as([*:0]const u8, &buf);
         rl.drawText(ptr_to_buf, @intCast(center_x), @intCast(center_y), @intCast(2 * scaling), rl.Color.white);
@@ -193,6 +193,7 @@ fn getPrng() !std.rand.Random {
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
+        std.debug.print("Seed {}", .{seed});
         break :blk seed;
     });
     return prng.random();

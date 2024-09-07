@@ -8,9 +8,9 @@ const Graph = @import("Graph.zig");
 const split_colors = [_]rl.Color{
     rl.Color.red,
     rl.Color.green,
-    // rl.Color.blue,
-    // rl.Color.purple,
-    // rl.Color.orange,
+    rl.Color.blue,
+    rl.Color.purple,
+    rl.Color.orange,
 };
 
 fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: comptime_int, color: rl.Color) void {

@@ -23,22 +23,22 @@ pub fn buildFromBsp(self: *Self, root: BspNode) !void {
         try self.buildFromBsp(root.second_child.?.*);
         switch (axis) {
             .x => {
-                for (root.first_child.?.right_nodes.items) |right_node| {
-                    for (root.second_child.?.left_nodes.items) |left_node| {
-                        if (right_node.max_y <= left_node.min_y or right_node.min_y >= right_node.max_y) {
+                for (root.first_child.?.right_nodes.items) |left_node| {
+                    for (root.second_child.?.left_nodes.items) |right_node| {
+                        if (left_node.max_y <= right_node.min_y or left_node.min_y >= right_node.max_y) {
                             continue;
                         }
-                        try self.edges.append(.{ right_node, left_node });
+                        try self.edges.append(.{ left_node, right_node });
                     }
                 }
             },
             .y => {
-                for (root.first_child.?.down_nodes.items) |down_node| {
-                    for (root.second_child.?.up_nodes.items) |up_node| {
-                        if (down_node.max_x <= up_node.min_x or down_node.min_x >= up_node.max_x) {
+                for (root.first_child.?.down_nodes.items) |up_node| {
+                    for (root.second_child.?.up_nodes.items) |down_node| {
+                        if (up_node.max_x <= down_node.min_x or up_node.min_x >= down_node.max_x) {
                             continue;
                         }
-                        try self.edges.append(.{ down_node, up_node });
+                        try self.edges.append(.{ up_node, down_node });
                     }
                 }
             },

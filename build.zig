@@ -4,7 +4,7 @@ const rlz = @import("raylib-zig");
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-
+    
     const raylib_dep = b.dependency("raylib-zig", .{
         .target = target,
         .optimize = optimize,
@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) !void {
 
     //web exports are completely separate
     if (target.query.os_tag == .emscripten) {
-        const exe_lib = rlz.emcc.compileForEmscripten(b, "maze-generator", "src/main.zig", target, optimize);
+        const exe_lib = rlz.emcc.compileForEmscripten(b, "dungeon-generator", "src/main.zig", target, optimize);
 
         exe_lib.linkLibrary(raylib_artifact);
         exe_lib.root_module.addImport("raylib", raylib);
@@ -26,18 +26,18 @@ pub fn build(b: *std.Build) !void {
         b.getInstallStep().dependOn(&link_step.step);
         const run_step = try rlz.emcc.emscriptenRunStep(b);
         run_step.step.dependOn(&link_step.step);
-        const run_option = b.step("run", "Run maze-generator");
+        const run_option = b.step("run", "Run dungeon-generator");
         run_option.dependOn(&run_step.step);
         return;
     }
 
-    const exe = b.addExecutable(.{ .name = "maze-generator", .root_source_file = b.path("src/main.zig"), .optimize = optimize, .target = target });
+    const exe = b.addExecutable(.{ .name = "dungeon-generator", .root_source_file = b.path("src/main.zig"), .optimize = optimize, .target = target });
 
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
 
     const run_cmd = b.addRunArtifact(exe);
-    const run_step = b.step("run", "Run maze-generator");
+    const run_step = b.step("run", "Run dungeon-generator");
     run_step.dependOn(&run_cmd.step);
 
     b.installArtifact(exe);

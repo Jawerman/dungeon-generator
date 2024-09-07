@@ -5,15 +5,16 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug with lldb",
-            "program": "${workspaceFolder}/zig-out/bin/maze-generator.exe",
+            "program": "${workspaceFolder}/zig-out/bin/dungeon-generator.exe",
             "args": ["/usr/local/bin/zig"],
             "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build",
         },
         {
             "name": "Debug with cpptools",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/zig-out/bin//maze-generator.exe",
+            "program": "${workspaceFolder}/zig-out/bin/dungeon-generator.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/zig-out/bin",
@@ -23,6 +24,7 @@
             "logging": {
                 "moduleLoad": false
             },
+            "preLaunchTask": "build",
         }
     ]
 }
