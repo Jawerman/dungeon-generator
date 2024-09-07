@@ -1,5 +1,3 @@
-// raylib-zig (c) Nikolas Wipper 2023
-
 const std = @import("std");
 const rl = @import("raylib");
 const BspNode = @import("BspNode.zig");
