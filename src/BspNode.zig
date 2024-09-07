@@ -11,6 +11,8 @@ const SplitAxis = enum {
     y,
 };
 
+var next_id: u32 = 0;
+
 first_child: ?*Self,
 second_child: ?*Self,
 
@@ -25,14 +27,16 @@ down_nodes: std.ArrayList(*Self),
 left_nodes: std.ArrayList(*Self),
 right_nodes: std.ArrayList(*Self),
 
+id: u32,
+
 splitted_axis: ?SplitAxis,
 
 pub fn init(width: u32, height: u32, min_width: u32, min_height: u32, allocator: std.mem.Allocator, max_depth: u32) !?*Self {
     return create_node(0, width, 0, height, min_width, min_height, try getPrng(), allocator, max_depth, 0);
 }
 
-pub fn draw(self: Self, colors: []const rl.Color, scaling: u32, max_depth: u32) void {
-    self.drawNode(colors, scaling, 0, max_depth);
+pub fn draw(self: Self, colors: []const rl.Color, scaling: u32, max_depth: u32) !void {
+    try self.drawNode(colors, scaling, 0, max_depth);
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
@@ -59,6 +63,9 @@ fn create_node(min_x: u32, max_x: u32, min_y: u32, max_y: u32, min_width: u32, m
     var first_child: ?*Self = null;
     var second_child: ?*Self = null;
     var splitted_axis: ?SplitAxis = null;
+
+    const id = next_id;
+    next_id += 1;
 
     if (can_split and depth < max_depth) {
         const is_x_splitted_axis = if (can_split_x and can_split_y)
@@ -89,6 +96,7 @@ fn create_node(min_x: u32, max_x: u32, min_y: u32, max_y: u32, min_width: u32, m
 
     const node = try allocator.create(Self);
     node.* = .{
+        .id = id,
         .min_x = min_x,
         .max_x = max_x,
         .min_y = min_y,
@@ -137,7 +145,7 @@ fn create_node(min_x: u32, max_x: u32, min_y: u32, max_y: u32, min_width: u32, m
     return node;
 }
 
-fn drawNode(self: Self, colors: []const rl.Color, scaling: u32, current_depth: u32, max_depth: u32) void {
+fn drawNode(self: Self, colors: []const rl.Color, scaling: u32, current_depth: u32, max_depth: u32) !void {
     if (current_depth > max_depth) {
         return;
     }
@@ -157,13 +165,27 @@ fn drawNode(self: Self, colors: []const rl.Color, scaling: u32, current_depth: u
                 rl.drawLine(min, split_position, max, split_position, selected_color);
             },
         }
+    } else {
+        const min_x = self.min_x * scaling;
+        const max_x = self.max_x * scaling;
+        const min_y = self.min_y * scaling;
+        const max_y = self.max_y * scaling;
+
+        const center_x = min_x + ((max_x - min_x) / 2);
+        const center_y = min_y + ((max_y - min_y) / 2);
+
+        var buf: [10:0]u8 = .{0} ** 10;
+        _ = try std.fmt.bufPrint(&buf, "{X}", .{self.id});
+
+        const ptr_to_buf = @as([*:0]const u8, &buf);
+        rl.drawText(ptr_to_buf, @intCast(center_x), @intCast(center_y), @intCast(2 * scaling), rl.Color.white);
     }
 
     if (self.first_child) |child| {
-        child.drawNode(colors, scaling, current_depth + 1, max_depth);
+        try child.drawNode(colors, scaling, current_depth + 1, max_depth);
     }
     if (self.second_child) |child| {
-        child.drawNode(colors, scaling, current_depth + 1, max_depth);
+        try child.drawNode(colors, scaling, current_depth + 1, max_depth);
     }
 }
 

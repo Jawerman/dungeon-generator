@@ -29,7 +29,7 @@ pub fn main() anyerror!void {
     //--------------------------------------------------------------------------------------
     const screenWidth = 800;
     const screenHeight = 600;
-    const grid_size = 10;
+    // const grid_size = 10;
 
     // const depth_increase_interval = 0.5;
 
@@ -66,11 +66,11 @@ pub fn main() anyerror!void {
 
         rl.clearBackground(rl.Color.black);
 
-        drawGrid(screenWidth, screenHeight, grid_size, rl.Color.dark_gray);
+        // drawGrid(screenWidth, screenHeight, grid_size, rl.Color.dark_gray);
 
         // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
-        node.?.draw(&split_colors, 10, split_colors.len);
-        graph.draw(10, rl.Color.white);
+        try node.?.draw(&split_colors, 10, split_colors.len);
+        graph.draw(10, rl.Color.dark_gray);
 
         //----------------------------------------------------------------------------------
     }
