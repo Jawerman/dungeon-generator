@@ -19,10 +19,14 @@ pub fn init(allocator: std.mem.Allocator) Self {
     };
 }
 
-pub fn buildFromBsp(self: *Self, root: BspNode) !void {
+pub fn buildFromBsp(self: *Self, root: *BspNode) !void {
     if (root.splitted_axis) |axis| {
-        try self.buildFromBsp(root.first_child.?.*);
-        try self.buildFromBsp(root.second_child.?.*);
+        if (root.first_child) |child| {
+            try self.buildFromBsp(child);
+        }
+        if (root.second_child) |child| {
+            try self.buildFromBsp(child);
+        }
         switch (axis) {
             .x => {
                 for (root.first_child.?.right_nodes.items) |left_node| {
@@ -46,7 +50,7 @@ pub fn buildFromBsp(self: *Self, root: BspNode) !void {
             },
         }
     } else {
-        try self.nodes.append(&root);
+        try self.nodes.append(root);
     }
 }
 

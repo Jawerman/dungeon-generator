@@ -146,7 +146,7 @@ fn create_node(min_x: u32, max_x: u32, min_y: u32, max_y: u32, min_width: u32, m
     return node;
 }
 
-fn getCenterPoint(self: Self) struct { x: u32, y: u32 } {
+pub fn calculateCenterPoint(self: Self) struct { x: u32, y: u32 } {
     const min_x = self.min_x;
     const max_x = self.max_x;
     const min_y = self.min_y;
@@ -179,14 +179,7 @@ fn drawNode(self: Self, colors: []const rl.Color, scaling: u32, current_depth: u
             },
         }
     } else {
-        // const min_x = self.min_x * scaling;
-        // const max_x = self.max_x * scaling;
-        // const min_y = self.min_y * scaling;
-        // const max_y = self.max_y * scaling;
-        //
-        // const center_x = min_x + ((max_x - min_x) / 2);
-        // const center_y = min_y + ((max_y - min_y) / 2);
-        const center = self.getCenterPoint();
+        const center = self.calculateCenterPoint();
 
         var buf: [10:0]u8 = .{0} ** 10;
         _ = try std.fmt.bufPrint(&buf, "{}", .{self.id});

@@ -2,6 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const BspNode = @import("BspNode.zig");
 const Graph = @import("Graph.zig");
+const MspBuilder = @import("minimum_spanning_tree_builder.zig");
 
 const split_colors = [_]rl.Color{
     rl.Color.red,
@@ -27,7 +28,6 @@ pub fn main() anyerror!void {
     //--------------------------------------------------------------------------------------
     const screenWidth = 800;
     const screenHeight = 600;
-    // const grid_size = 10;
 
     // const depth_increase_interval = 0.5;
 
@@ -37,7 +37,9 @@ pub fn main() anyerror!void {
 
     const node = try BspNode.init(screenWidth / 10, screenHeight / 10, 10, 10, allocator, split_colors.len);
     var graph = Graph.init(allocator);
-    try graph.buildFromBsp(node.?.*);
+    try graph.buildFromBsp(node.?);
+
+    var minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
     rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
@@ -68,7 +70,8 @@ pub fn main() anyerror!void {
 
         // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
         try node.?.draw(&split_colors, 10, split_colors.len);
-        graph.draw(10, rl.Color.dark_gray);
+        graph.draw(10, rl.Color.dark_brown);
+        minimum_graph.draw(10, rl.Color.white);
 
         //----------------------------------------------------------------------------------
     }
