@@ -26,8 +26,8 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: 
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const screenWidth = 800;
-    const screenHeight = 600;
+    const screenWidth = 1920;
+    const screenHeight = 1080;
 
     // const depth_increase_interval = 0.5;
 
@@ -70,7 +70,7 @@ pub fn main() anyerror!void {
 
         // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
         try node.?.draw(&split_colors, 10, split_colors.len);
-        graph.draw(10, rl.Color.dark_brown);
+        // graph.draw(10, rl.Color.dark_purple);
         minimum_graph.draw(10, rl.Color.white);
 
         //----------------------------------------------------------------------------------

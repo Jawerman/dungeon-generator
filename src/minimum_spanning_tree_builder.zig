@@ -28,11 +28,16 @@ pub fn buildMSTGraph(graph: Graph, allocator: std.mem.Allocator) !Graph {
 
     while (pending_nodes_queue.items.len > 0) {
         const current = pending_nodes_queue.remove();
+
+        std.debug.print("\nTesting node: {} with current cost: {}", .{ current.node.id, current.cost });
+
         if (current.edge) |edge| {
             try result.edges.append(edge);
+            std.debug.print("\n\tAdding to result node: {} with cost: {}, with edge {} - {}", .{ current.node.id, current.cost, edge[0].id, edge[1].id });
         }
 
         for (graph.edges.items) |edge| {
+            std.debug.print("\n\tTesting edge {} - {}", .{ edge[0].id, edge[1].id });
             const joined_node = if (edge[0].id == current.node.id)
                 edge[1]
             else if (edge[1].id == current.node.id)
@@ -40,22 +45,40 @@ pub fn buildMSTGraph(graph: Graph, allocator: std.mem.Allocator) !Graph {
             else
                 continue;
 
-            const joined_node_connection = for (pending_nodes_queue.items) |*pending| {
-                if (joined_node.id == pending.*.node.id) {
-                    break pending;
+            std.debug.print("\n\tFound connection with node: {}", .{joined_node.id});
+
+            var joined_node_connection: NodeConnectionCost = undefined;
+
+            for (pending_nodes_queue.items, 0..) |*pending, index| {
+                if (joined_node.id == pending.node.id) {
+                    joined_node_connection = pending_nodes_queue.removeIndex(index);
+                    break;
                 }
             } else {
+                std.debug.print("\n\tNode with id: {} not in pending nodes, continue", .{joined_node.id});
                 continue;
-            };
+            }
+
+            if (joined_node_connection.edge) |current_edge| {
+                std.debug.print("\n\tCurrent connection: {} with cost: {} and edge: {} - {}", .{ joined_node_connection.node.id, joined_node_connection.cost, current_edge[0].id, current_edge[1].id });
+            } else {
+                std.debug.print("\n\tCurrent connection: {} with cost: {} and edge: {any}", .{ joined_node_connection.node.id, joined_node_connection.cost, joined_node_connection.edge });
+            }
 
             const edge_cost = calculateEdgeCost(edge);
+            std.debug.print("\n\tCalculated cost: {}", .{edge_cost});
+
             if (joined_node_connection.cost > edge_cost) {
-                joined_node_connection.*.cost = edge_cost;
-                joined_node_connection.*.edge = edge;
+                std.debug.print("\n\tUpdating connection of node: {}, with new cost {} and edge {} - {}", .{ joined_node_connection.node.id, edge_cost, edge[0].id, edge[1].id });
+                joined_node_connection.cost = edge_cost;
+                joined_node_connection.edge = edge;
             }
+
+            try pending_nodes_queue.add(joined_node_connection);
         }
     }
 
+    std.debug.print("\nEND", .{});
     return result;
 }
 
