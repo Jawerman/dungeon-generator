@@ -26,8 +26,8 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: 
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const screenWidth = 1920;
-    const screenHeight = 1080;
+    const screenWidth = 1280;
+    const screenHeight = 720;
 
     // const depth_increase_interval = 0.5;
 
@@ -35,7 +35,11 @@ pub fn main() anyerror!void {
     const allocator = arena.allocator();
     defer arena.deinit();
 
-    const node = try BspNode.init(screenWidth / 10, screenHeight / 10, 10, 10, allocator, split_colors.len);
+    const rand = try BspNode.getPrng();
+    const min_split_width_ratio = 1.0 / 10.0;
+    const min_split_height_ratio = 1.0 / 10.0;
+
+    const node = try BspNode.init(rl.Rectangle.init(0, 0, 1, 1), min_split_height_ratio, min_split_width_ratio, allocator, rand, split_colors.len);
     var graph = Graph.init(allocator);
     try graph.buildFromBsp(node.?);
 
@@ -69,9 +73,9 @@ pub fn main() anyerror!void {
         // drawGrid(screenWidth, screenHeight, grid_size, rl.Color.dark_gray);
 
         // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
-        try node.?.draw(&split_colors, 10, split_colors.len);
-        // graph.draw(10, rl.Color.dark_purple);
-        minimum_graph.draw(10, rl.Color.white);
+        try node.?.draw(&split_colors, screenWidth, screenHeight, split_colors.len);
+        graph.draw(screenWidth, screenHeight, rl.Color.init(255, 255, 255, 40));
+        minimum_graph.draw(screenWidth, screenHeight, rl.Color.init(255, 255, 255, 200));
 
         //----------------------------------------------------------------------------------
     }

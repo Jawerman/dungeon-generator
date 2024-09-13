@@ -16,12 +16,7 @@ var next_id: u32 = 0;
 first_child: ?*Self,
 second_child: ?*Self,
 
-// PERF: Maybe storing the node center point can be useful since it is used in many places
-min_x: u32,
-max_x: u32,
-
-min_y: u32,
-max_y: u32,
+area: rl.Rectangle,
 
 up_nodes: std.ArrayList(*Self),
 down_nodes: std.ArrayList(*Self),
@@ -32,12 +27,12 @@ id: u32,
 
 splitted_axis: ?SplitAxis,
 
-pub fn init(width: u32, height: u32, min_width: u32, min_height: u32, allocator: std.mem.Allocator, max_depth: u32) !?*Self {
-    return create_node(0, width, 0, height, min_width, min_height, try getPrng(), allocator, max_depth, 0);
+pub fn init(area: rl.Rectangle, min_width: f32, min_height: f32, allocator: std.mem.Allocator, rnd: std.rand.Random, max_depth: u32) !?*Self {
+    return create_node(area, min_width, min_height, rnd, allocator, max_depth, 0);
 }
 
-pub fn draw(self: Self, colors: []const rl.Color, scaling: u32, max_depth: u32) !void {
-    try self.drawNode(colors, scaling, 0, max_depth);
+pub fn draw(self: Self, colors: []const rl.Color, scale_x: f32, scale_y: f32, max_depth: u32) !void {
+    try self.drawNode(colors, scale_x, scale_y, 0, max_depth);
 }
 
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
@@ -50,58 +45,58 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     allocator.destroy(self);
 }
 
-fn create_node(min_x: u32, max_x: u32, min_y: u32, max_y: u32, min_width: u32, min_height: u32, rnd: std.rand.Random, allocator: std.mem.Allocator, max_depth: u32, depth: u32) !?*Self {
-    const split_x_min = min_x + min_width;
-    const split_x_max = max_x - min_width;
+fn create_node(area: rl.Rectangle, min_width: f32, min_height: f32, rnd: std.rand.Random, allocator: std.mem.Allocator, max_depth: u32, depth: u32) !?*Self {
+    const split_x_min = min_width;
+    const split_x_max = area.width - min_width;
 
-    const split_y_min = min_y + min_height;
-    const split_y_max = max_y - min_height;
+    const split_y_min = min_height;
+    const split_y_max = area.height - min_height;
 
-    const can_split_x = split_x_min <= split_x_max;
-    const can_split_y = split_y_min <= split_y_max;
-    const can_split = can_split_x or can_split_y;
+    const max_depth_reached = depth >= max_depth;
+    const can_split_x = split_x_min <= split_x_max and !max_depth_reached;
+    const can_split_y = split_y_min <= split_y_max and !max_depth_reached;
 
     var first_child: ?*Self = null;
     var second_child: ?*Self = null;
-    var splitted_axis: ?SplitAxis = null;
+
+    const splitted_axis = if (can_split_x and can_split_y)
+        if (rnd.boolean()) SplitAxis.x else SplitAxis.y
+    else if (can_split_x)
+        SplitAxis.x
+    else if (can_split_y)
+        SplitAxis.y
+    else
+        null;
+
+    if (splitted_axis != null) {
+        var first_child_area: ?rl.Rectangle = null;
+        var second_child_area: ?rl.Rectangle = null;
+        const split_ratio = rnd.float(f32);
+
+        switch (splitted_axis.?) {
+            .x => {
+                const split_position = ((split_x_max - split_x_min) * split_ratio) + split_x_min;
+                first_child_area = rl.Rectangle.init(area.x, area.y, split_position, area.height);
+                second_child_area = rl.Rectangle.init(area.x + split_position, area.y, area.width - split_position, area.height);
+            },
+            .y => {
+                const split_position = ((split_y_max - split_y_min) * split_ratio) + split_y_min;
+                first_child_area = rl.Rectangle.init(area.x, area.y, area.width, split_position);
+                second_child_area = rl.Rectangle.init(area.x, area.y + split_position, area.width, area.height - split_position);
+            },
+        }
+
+        first_child = try create_node(first_child_area.?, min_width, min_height, rnd, allocator, max_depth, depth + 1);
+        second_child = try create_node(second_child_area.?, min_width, min_height, rnd, allocator, max_depth, depth + 1);
+    }
 
     const id = next_id;
     next_id += 1;
 
-    if (can_split and depth < max_depth) {
-        const is_x_splitted_axis = if (can_split_x and can_split_y)
-            rnd.boolean()
-        else
-            can_split_x;
-
-        if (is_x_splitted_axis) {
-            splitted_axis = SplitAxis.x;
-            const split_position = if (split_x_min == split_x_max)
-                split_x_min
-            else
-                rnd.intRangeLessThan(u32, split_x_min, split_x_max);
-
-            first_child = try create_node(min_x, split_position, min_y, max_y, min_width, min_height, rnd, allocator, max_depth, depth + 1);
-            second_child = try create_node(split_position, max_x, min_y, max_y, min_width, min_height, rnd, allocator, max_depth, depth + 1);
-        } else {
-            splitted_axis = SplitAxis.y;
-            const split_position = if (split_y_min == split_y_max)
-                split_y_min
-            else
-                rnd.intRangeLessThan(u32, split_y_min, split_y_max);
-
-            first_child = try create_node(min_x, max_x, min_y, split_position, min_width, min_height, rnd, allocator, max_depth, depth + 1);
-            second_child = try create_node(min_x, max_x, split_position, max_y, min_width, min_height, rnd, allocator, max_depth, depth + 1);
-        }
-    }
-
     const node = try allocator.create(Self);
     node.* = .{
         .id = id,
-        .min_x = min_x,
-        .max_x = max_x,
-        .min_y = min_y,
-        .max_y = max_y,
+        .area = area,
         .splitted_axis = splitted_axis,
         .up_nodes = std.ArrayList(*Self).init(allocator),
         .down_nodes = std.ArrayList(*Self).init(allocator),
@@ -146,57 +141,52 @@ fn create_node(min_x: u32, max_x: u32, min_y: u32, max_y: u32, min_width: u32, m
     return node;
 }
 
-pub fn calculateCenterPoint(self: Self) struct { x: u32, y: u32 } {
-    const min_x = self.min_x;
-    const max_x = self.max_x;
-    const min_y = self.min_y;
-    const max_y = self.max_y;
-
-    return .{
-        .x = min_x + ((max_x - min_x) / 2),
-        .y = min_y + ((max_y - min_y) / 2),
-    };
+pub fn getRectangeCenter(rect: rl.Rectangle) rl.Vector2 {
+    return rl.Vector2.init(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
 }
 
-fn drawNode(self: Self, colors: []const rl.Color, scaling: u32, current_depth: u32, max_depth: u32) !void {
+fn drawNode(self: Self, colors: []const rl.Color, scale_x: f32, scale_y: f32, current_depth: u32, max_depth: u32) !void {
     if (current_depth > max_depth) {
         return;
     }
     const selected_color = colors[current_depth % colors.len];
     if (self.splitted_axis) |axis| {
+        const first_child_area = self.first_child.?.area;
         switch (axis) {
             .x => {
-                const split_position: i32 = @intCast(self.first_child.?.max_x * scaling);
-                const min: i32 = @intCast(self.min_y * scaling);
-                const max: i32 = @intCast(self.max_y * scaling);
+                const split_position: i32 = @intFromFloat((first_child_area.x + first_child_area.width) * scale_x);
+                const min: i32 = @intFromFloat(first_child_area.y * scale_y);
+                const max: i32 = @intFromFloat((first_child_area.y + first_child_area.height) * scale_y);
+
                 rl.drawLine(split_position, min, split_position, max, selected_color);
             },
             .y => {
-                const split_position: i32 = @intCast(self.first_child.?.max_y * scaling);
-                const min: i32 = @intCast(self.min_x * scaling);
-                const max: i32 = @intCast(self.max_x * scaling);
+                const split_position: i32 = @intFromFloat((first_child_area.y + first_child_area.height) * scale_y);
+                const min: i32 = @intFromFloat(first_child_area.x * scale_x);
+                const max: i32 = @intFromFloat((first_child_area.x + first_child_area.width) * scale_x);
+
                 rl.drawLine(min, split_position, max, split_position, selected_color);
             },
         }
     } else {
-        const center = self.calculateCenterPoint();
+        const center = Self.getRectangeCenter(self.area);
 
         var buf: [10:0]u8 = .{0} ** 10;
         _ = try std.fmt.bufPrint(&buf, "{}", .{self.id});
 
         const ptr_to_buf = @as([*:0]const u8, &buf);
-        rl.drawText(ptr_to_buf, @intCast(center.x * scaling), @intCast(center.y * scaling), @intCast(2 * scaling), rl.Color.white);
+        rl.drawText(ptr_to_buf, @intFromFloat(center.x * scale_x), @intFromFloat(center.y * scale_y), 20, rl.Color.white);
     }
 
     if (self.first_child) |child| {
-        try child.drawNode(colors, scaling, current_depth + 1, max_depth);
+        try child.drawNode(colors, scale_x, scale_y, current_depth + 1, max_depth);
     }
     if (self.second_child) |child| {
-        try child.drawNode(colors, scaling, current_depth + 1, max_depth);
+        try child.drawNode(colors, scale_x, scale_y, current_depth + 1, max_depth);
     }
 }
 
-fn getPrng() !std.rand.Random {
+pub fn getPrng() !std.rand.Random {
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));

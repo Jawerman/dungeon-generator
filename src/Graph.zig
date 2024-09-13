@@ -31,7 +31,12 @@ pub fn buildFromBsp(self: *Self, root: *BspNode) !void {
             .x => {
                 for (root.first_child.?.right_nodes.items) |left_node| {
                     for (root.second_child.?.left_nodes.items) |right_node| {
-                        if (left_node.max_y <= right_node.min_y or left_node.min_y >= right_node.max_y) {
+                        const left_min = left_node.area.y;
+                        const left_max = left_node.area.y + left_node.area.height;
+                        const right_min = right_node.area.y;
+                        const right_max = right_node.area.y + right_node.area.height;
+
+                        if ((left_max <= right_min) or (left_min >= right_max)) {
                             continue;
                         }
                         try self.edges.append(.{ left_node, right_node });
@@ -41,7 +46,12 @@ pub fn buildFromBsp(self: *Self, root: *BspNode) !void {
             .y => {
                 for (root.first_child.?.down_nodes.items) |up_node| {
                     for (root.second_child.?.up_nodes.items) |down_node| {
-                        if (up_node.max_x <= down_node.min_x or up_node.min_x >= down_node.max_x) {
+                        const up_min = up_node.area.x;
+                        const up_max = up_node.area.x + up_node.area.width;
+                        const down_min = down_node.area.x;
+                        const down_max = down_node.area.x + down_node.area.width;
+
+                        if ((up_max <= down_min) or (up_min >= down_max)) {
                             continue;
                         }
                         try self.edges.append(.{ up_node, down_node });
@@ -54,28 +64,15 @@ pub fn buildFromBsp(self: *Self, root: *BspNode) !void {
     }
 }
 
-pub fn draw(self: Self, scaling: u32, color: rl.Color) void {
+pub fn draw(self: Self, scale_x: f32, scale_y: f32, color: rl.Color) void {
     for (self.edges.items) |edge| {
-        drawEdge(edge, scaling, color);
+        drawEdge(edge, scale_x, scale_y, color);
     }
 }
 
-fn drawEdge(edge: Edge, scaling: u32, color: rl.Color) void {
-    const first_node_min_x = edge[0].*.min_x * scaling;
-    const first_node_max_x = edge[0].*.max_x * scaling;
-    const first_node_min_y = edge[0].*.min_y * scaling;
-    const first_node_max_y = edge[0].*.max_y * scaling;
+fn drawEdge(edge: Edge, scale_x: f32, scale_y: f32, color: rl.Color) void {
+    const first_node_center = BspNode.getRectangeCenter(edge[0].area);
+    const second_node_center = BspNode.getRectangeCenter(edge[1].area);
 
-    const second_node_min_x = edge[1].*.min_x * scaling;
-    const second_node_max_x = edge[1].*.max_x * scaling;
-    const second_node_min_y = edge[1].*.min_y * scaling;
-    const second_node_max_y = edge[1].*.max_y * scaling;
-
-    const first_node_center_x = first_node_min_x + ((first_node_max_x - first_node_min_x) / 2);
-    const first_node_center_y = first_node_min_y + ((first_node_max_y - first_node_min_y) / 2);
-
-    const second_node_center_x = second_node_min_x + (((second_node_max_x - second_node_min_x) / 2));
-    const second_node_center_y = second_node_min_y + ((second_node_max_y - second_node_min_y) / 2);
-
-    rl.drawLine(@intCast(first_node_center_x), @intCast(first_node_center_y), @intCast(second_node_center_x), @intCast(second_node_center_y), color);
+    rl.drawLine(@intFromFloat(first_node_center.x * scale_x), @intFromFloat(first_node_center.y * scale_y), @intFromFloat(second_node_center.x * scale_x), @intFromFloat(second_node_center.y * scale_y), color);
 }

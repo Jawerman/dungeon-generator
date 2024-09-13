@@ -4,7 +4,7 @@ const Graph = @import("Graph.zig");
 
 const NodeConnectionCost = struct {
     node: *const BspNode,
-    cost: u32,
+    cost: f32,
     edge: ?Graph.Edge,
 };
 
@@ -29,15 +29,15 @@ pub fn buildMSTGraph(graph: Graph, allocator: std.mem.Allocator) !Graph {
     while (pending_nodes_queue.items.len > 0) {
         const current = pending_nodes_queue.remove();
 
-        std.debug.print("\nTesting node: {} with current cost: {}", .{ current.node.id, current.cost });
+        // std.debug.print("\nTesting node: {} with current cost: {}", .{ current.node.id, current.cost });
 
         if (current.edge) |edge| {
             try result.edges.append(edge);
-            std.debug.print("\n\tAdding to result node: {} with cost: {}, with edge {} - {}", .{ current.node.id, current.cost, edge[0].id, edge[1].id });
+            // std.debug.print("\n\tAdding to result node: {} with cost: {}, with edge {} - {}", .{ current.node.id, current.cost, edge[0].id, edge[1].id });
         }
 
         for (graph.edges.items) |edge| {
-            std.debug.print("\n\tTesting edge {} - {}", .{ edge[0].id, edge[1].id });
+            // std.debug.print("\n\tTesting edge {} - {}", .{ edge[0].id, edge[1].id });
             const joined_node = if (edge[0].id == current.node.id)
                 edge[1]
             else if (edge[1].id == current.node.id)
@@ -45,7 +45,7 @@ pub fn buildMSTGraph(graph: Graph, allocator: std.mem.Allocator) !Graph {
             else
                 continue;
 
-            std.debug.print("\n\tFound connection with node: {}", .{joined_node.id});
+            // std.debug.print("\n\tFound connection with node: {}", .{joined_node.id});
 
             var joined_node_connection: NodeConnectionCost = undefined;
 
@@ -55,21 +55,21 @@ pub fn buildMSTGraph(graph: Graph, allocator: std.mem.Allocator) !Graph {
                     break;
                 }
             } else {
-                std.debug.print("\n\tNode with id: {} not in pending nodes, continue", .{joined_node.id});
+                // std.debug.print("\n\tNode with id: {} not in pending nodes, continue", .{joined_node.id});
                 continue;
             }
 
-            if (joined_node_connection.edge) |current_edge| {
-                std.debug.print("\n\tCurrent connection: {} with cost: {} and edge: {} - {}", .{ joined_node_connection.node.id, joined_node_connection.cost, current_edge[0].id, current_edge[1].id });
-            } else {
-                std.debug.print("\n\tCurrent connection: {} with cost: {} and edge: {any}", .{ joined_node_connection.node.id, joined_node_connection.cost, joined_node_connection.edge });
-            }
+            // if (joined_node_connection.edge) |current_edge| {
+            //     std.debug.print("\n\tCurrent connection: {} with cost: {} and edge: {} - {}", .{ joined_node_connection.node.id, joined_node_connection.cost, current_edge[0].id, current_edge[1].id });
+            // } else {
+            //     std.debug.print("\n\tCurrent connection: {} with cost: {} and edge: {any}", .{ joined_node_connection.node.id, joined_node_connection.cost, joined_node_connection.edge });
+            // }
 
             const edge_cost = calculateEdgeCost(edge);
-            std.debug.print("\n\tCalculated cost: {}", .{edge_cost});
+            // std.debug.print("\n\tCalculated cost: {}", .{edge_cost});
 
             if (joined_node_connection.cost > edge_cost) {
-                std.debug.print("\n\tUpdating connection of node: {}, with new cost {} and edge {} - {}", .{ joined_node_connection.node.id, edge_cost, edge[0].id, edge[1].id });
+                // std.debug.print("\n\tUpdating connection of node: {}, with new cost {} and edge {} - {}", .{ joined_node_connection.node.id, edge_cost, edge[0].id, edge[1].id });
                 joined_node_connection.cost = edge_cost;
                 joined_node_connection.edge = edge;
             }
@@ -77,20 +77,18 @@ pub fn buildMSTGraph(graph: Graph, allocator: std.mem.Allocator) !Graph {
             try pending_nodes_queue.add(joined_node_connection);
         }
     }
-
-    std.debug.print("\nEND", .{});
     return result;
 }
 
 // PERF: Transform "Graph.Edge" into an struct to store the edge cost
 // so it can be pre-calculated
 
-fn calculateEdgeCost(edge: Graph.Edge) u32 {
-    const first_node_center = edge[0].calculateCenterPoint();
-    const second_node_center = edge[1].calculateCenterPoint();
+fn calculateEdgeCost(edge: Graph.Edge) f32 {
+    const first_node_center = BspNode.getRectangeCenter(edge[0].area);
+    const second_node_center = BspNode.getRectangeCenter(edge[1].area);
 
-    const x_distance = @as(i32, @intCast(first_node_center.x)) - @as(i32, @intCast(second_node_center.x));
-    const y_distance = @as(i32, @intCast(first_node_center.y)) - @as(i32, @intCast(second_node_center.y));
+    const x_distance = first_node_center.x - second_node_center.x;
+    const y_distance = first_node_center.y - second_node_center.y;
 
-    return @as(u32, @intCast((x_distance * x_distance) + (y_distance * y_distance)));
+    return (x_distance * x_distance) + (y_distance * y_distance);
 }
