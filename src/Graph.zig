@@ -1,5 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
+const utils = @import("utils.zig");
 const BspNode = @import("BspNode.zig");
 
 const Self = @This();
@@ -19,42 +20,32 @@ pub fn init(allocator: std.mem.Allocator) Self {
     };
 }
 
-pub fn buildFromBsp(self: *Self, root: *BspNode) !void {
+pub fn buildFromBsp(self: *Self, root: *BspNode, minimum_overlap: f32) !void {
     if (root.splitted_axis) |axis| {
         if (root.first_child) |child| {
-            try self.buildFromBsp(child);
+            try self.buildFromBsp(child, minimum_overlap);
         }
         if (root.second_child) |child| {
-            try self.buildFromBsp(child);
+            try self.buildFromBsp(child, minimum_overlap);
         }
         switch (axis) {
             .x => {
                 for (root.first_child.?.right_nodes.items) |left_node| {
                     for (root.second_child.?.left_nodes.items) |right_node| {
-                        const left_min = left_node.area.y;
-                        const left_max = left_node.area.y + left_node.area.height;
-                        const right_min = right_node.area.y;
-                        const right_max = right_node.area.y + right_node.area.height;
-
-                        if ((left_max <= right_min) or (left_min >= right_max)) {
-                            continue;
+                        const overlapping = utils.getRectAxisOverlap(left_node.area, right_node.area, utils.Axis.y);
+                        if (overlapping >= minimum_overlap) {
+                            try self.edges.append(.{ left_node, right_node });
                         }
-                        try self.edges.append(.{ left_node, right_node });
                     }
                 }
             },
             .y => {
                 for (root.first_child.?.down_nodes.items) |up_node| {
                     for (root.second_child.?.up_nodes.items) |down_node| {
-                        const up_min = up_node.area.x;
-                        const up_max = up_node.area.x + up_node.area.width;
-                        const down_min = down_node.area.x;
-                        const down_max = down_node.area.x + down_node.area.width;
-
-                        if ((up_max <= down_min) or (up_min >= down_max)) {
-                            continue;
+                        const overlapping = utils.getRectAxisOverlap(up_node.area, down_node.area, utils.Axis.x);
+                        if (overlapping >= minimum_overlap) {
+                            try self.edges.append(.{ up_node, down_node });
                         }
-                        try self.edges.append(.{ up_node, down_node });
                     }
                 }
             },
@@ -71,8 +62,8 @@ pub fn draw(self: Self, scale_x: f32, scale_y: f32, color: rl.Color) void {
 }
 
 fn drawEdge(edge: Edge, scale_x: f32, scale_y: f32, color: rl.Color) void {
-    const first_node_center = BspNode.getRectangeCenter(edge[0].area);
-    const second_node_center = BspNode.getRectangeCenter(edge[1].area);
+    const first_node_center = utils.getRectCenter(edge[0].area);
+    const second_node_center = utils.getRectCenter(edge[1].area);
 
     rl.drawLine(@intFromFloat(first_node_center.x * scale_x), @intFromFloat(first_node_center.y * scale_y), @intFromFloat(second_node_center.x * scale_x), @intFromFloat(second_node_center.y * scale_y), color);
 }

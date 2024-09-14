@@ -1,14 +1,10 @@
 const std = @import("std");
 const rl = @import("raylib");
+const utils = @import("utils.zig");
 
 const Self = @This();
 const Error = error{
     NodeTooSmall,
-};
-
-const SplitAxis = enum {
-    x,
-    y,
 };
 
 var next_id: u32 = 0;
@@ -25,7 +21,7 @@ right_nodes: std.ArrayList(*Self),
 
 id: u32,
 
-splitted_axis: ?SplitAxis,
+splitted_axis: ?utils.Axis,
 
 pub fn init(area: rl.Rectangle, min_width: f32, min_height: f32, allocator: std.mem.Allocator, rnd: std.rand.Random, max_depth: u32) !?*Self {
     return create_node(area, min_width, min_height, rnd, allocator, max_depth, 0);
@@ -60,11 +56,11 @@ fn create_node(area: rl.Rectangle, min_width: f32, min_height: f32, rnd: std.ran
     var second_child: ?*Self = null;
 
     const splitted_axis = if (can_split_x and can_split_y)
-        if (rnd.boolean()) SplitAxis.x else SplitAxis.y
+        if (rnd.boolean()) utils.Axis.x else utils.Axis.y
     else if (can_split_x)
-        SplitAxis.x
+        utils.Axis.x
     else if (can_split_y)
-        SplitAxis.y
+        utils.Axis.y
     else
         null;
 
@@ -141,10 +137,6 @@ fn create_node(area: rl.Rectangle, min_width: f32, min_height: f32, rnd: std.ran
     return node;
 }
 
-pub fn getRectangeCenter(rect: rl.Rectangle) rl.Vector2 {
-    return rl.Vector2.init(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
-}
-
 fn drawNode(self: Self, colors: []const rl.Color, scale_x: f32, scale_y: f32, current_depth: u32, max_depth: u32) !void {
     if (current_depth > max_depth) {
         return;
@@ -169,7 +161,7 @@ fn drawNode(self: Self, colors: []const rl.Color, scale_x: f32, scale_y: f32, cu
             },
         }
     } else {
-        const center = Self.getRectangeCenter(self.area);
+        const center = utils.getRectCenter(self.area);
 
         var buf: [10:0]u8 = .{0} ** 10;
         _ = try std.fmt.bufPrint(&buf, "{}", .{self.id});
@@ -190,6 +182,7 @@ pub fn getPrng() !std.rand.Random {
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
+        // seed = 4141410307427861965;
         std.debug.print("Seed {}", .{seed});
         break :blk seed;
     });

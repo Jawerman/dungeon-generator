@@ -36,12 +36,12 @@ pub fn main() anyerror!void {
     defer arena.deinit();
 
     const rand = try BspNode.getPrng();
-    const min_split_width_ratio = 1.0 / 10.0;
-    const min_split_height_ratio = 1.0 / 10.0;
+    const min_split_width_ratio = 1.0 / 5.0;
+    const min_split_height_ratio = 1.0 / 5.0;
 
     const node = try BspNode.init(rl.Rectangle.init(0, 0, 1, 1), min_split_height_ratio, min_split_width_ratio, allocator, rand, split_colors.len);
     var graph = Graph.init(allocator);
-    try graph.buildFromBsp(node.?);
+    try graph.buildFromBsp(node.?, 0.1);
 
     var minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
 
