@@ -3,6 +3,7 @@ const rl = @import("raylib");
 const BspNode = @import("BspNode.zig");
 const Graph = @import("Graph.zig");
 const MspBuilder = @import("minimum_spanning_tree_builder.zig");
+const Map = @import("Map.zig");
 
 const split_colors = [_]rl.Color{
     rl.Color.red,
@@ -23,13 +24,22 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: 
     }
 }
 
+// m: toggle minimum spanning tree
+// g: toggle graph
+// b: toggle bsp
+// a: toggle map
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
     const screenWidth = 1280;
-    const screenHeight = 720;
+    const screenHeight = 1280;
 
     // const depth_increase_interval = 0.5;
+
+    var display_mst = true;
+    var display_graph = true;
+    var display_bsp = true;
+    var display_map = true;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
@@ -43,7 +53,9 @@ pub fn main() anyerror!void {
     var graph = Graph.init(allocator);
     try graph.buildFromBsp(node.?, 0.1, allocator);
 
-    var minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
+    const minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
+    var map = Map.init(allocator);
+    try map.build(minimum_graph, 0.0025, 0.02);
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
     rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
@@ -59,9 +71,18 @@ pub fn main() anyerror!void {
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         defer seconds_elapsed += 1.0 / 60.0;
         // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
-        //----------------------------------------------------------------------------------
+        if (rl.isKeyPressed(rl.KeyboardKey.key_m)) {
+            display_mst = !display_mst;
+        }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_g)) {
+            display_graph = !display_graph;
+        }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_b)) {
+            display_bsp = !display_bsp;
+        }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_a)) {
+            display_map = !display_map;
+        }
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -70,12 +91,23 @@ pub fn main() anyerror!void {
 
         rl.clearBackground(rl.Color.black);
 
-        // drawGrid(screenWidth, screenHeight, grid_size, rl.Color.dark_gray);
-
         // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
-        try node.?.draw(&split_colors, screenWidth, screenHeight, split_colors.len);
-        graph.draw(screenWidth, screenHeight, rl.Color.init(255, 255, 255, 40));
-        minimum_graph.draw(screenWidth, screenHeight, rl.Color.init(255, 255, 255, 200));
+
+        if (display_bsp) {
+            try node.?.draw(&split_colors, screenWidth, screenHeight, split_colors.len);
+        }
+
+        if (display_graph) {
+            graph.draw(screenWidth, screenHeight, rl.Color.init(255, 255, 255, 40));
+        }
+
+        if (display_mst) {
+            minimum_graph.draw(screenWidth, screenHeight, rl.Color.init(255, 255, 255, 150));
+        }
+
+        if (display_map) {
+            map.draw(screenWidth, screenHeight, rl.Color.init(255, 0, 0, 100), rl.Color.init(0, 255, 0, 255));
+        }
 
         //----------------------------------------------------------------------------------
     }
