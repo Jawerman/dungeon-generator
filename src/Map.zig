@@ -53,13 +53,13 @@ pub fn get_door_between(area1: rl.Rectangle, area2: rl.Rectangle, door_size: f32
 
     if (x_gap > 0) {
         const x = min_max_x;
-        const y = ((max_min_y + min_max_y) / 2) - door_size;
+        const y = ((max_min_y + min_max_y) / 2) - (door_size / 2);
         const width = x_gap;
         const height = door_size;
         return rl.Rectangle.init(x, y, width, height);
     } else {
         const y = min_max_y;
-        const x = ((max_min_x + min_max_x) / 2) - door_size;
+        const x = ((max_min_x + min_max_x) / 2) - (door_size / 2);
         const width = door_size;
         const height = y_gap;
         return rl.Rectangle.init(x, y, width, height);
