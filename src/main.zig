@@ -41,7 +41,7 @@ pub fn main() anyerror!void {
 
     const node = try BspNode.init(rl.Rectangle.init(0, 0, 1, 1), min_split_height_ratio, min_split_width_ratio, allocator, rand, split_colors.len);
     var graph = Graph.init(allocator);
-    try graph.buildFromBsp(node.?, 0.1);
+    try graph.buildFromBsp(node.?, 0.1, allocator);
 
     var minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
 
