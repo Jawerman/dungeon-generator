@@ -3,7 +3,8 @@ const rl = @import("raylib");
 const BspNode = @import("BspNode.zig");
 const Graph = @import("Graph.zig");
 const MspBuilder = @import("minimum_spanning_tree_builder.zig");
-const Map = @import("Map.zig");
+const Level = @import("Level.zig");
+const LevelVisualization = @import("LevelVisualization.zig");
 
 const split_colors = [_]rl.Color{
     rl.Color.red,
@@ -28,6 +29,7 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: 
 // g: toggle graph
 // b: toggle bsp
 // a: toggle map
+// l: toggle lines
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -36,10 +38,11 @@ pub fn main() anyerror!void {
 
     // const depth_increase_interval = 0.5;
 
-    var display_mst = true;
-    var display_graph = true;
-    var display_bsp = true;
+    var display_mst = false;
+    var display_graph = false;
+    var display_bsp = false;
     var display_map = true;
+    var display_lines = true;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
@@ -54,8 +57,11 @@ pub fn main() anyerror!void {
     try graph.buildFromBsp(node.?, 0.1, allocator);
 
     const minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
-    var map = Map.init(allocator);
-    try map.build(minimum_graph, 0.0025, 0.02);
+    var level = Level.init(allocator);
+    try level.build(minimum_graph, 0.0025, 0.02, allocator);
+
+    var visualization = LevelVisualization.init(allocator);
+    try visualization.addRoomsLines(level);
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
     rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
@@ -83,6 +89,9 @@ pub fn main() anyerror!void {
         if (rl.isKeyPressed(rl.KeyboardKey.key_a)) {
             display_map = !display_map;
         }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_l)) {
+            display_lines = !display_lines;
+        }
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -106,7 +115,11 @@ pub fn main() anyerror!void {
         }
 
         if (display_map) {
-            map.draw(screenWidth, screenHeight, rl.Color.init(255, 0, 0, 100), rl.Color.init(0, 255, 0, 255));
+            level.draw(screenWidth, screenHeight, rl.Color.init(255, 0, 0, 100), rl.Color.init(0, 255, 0, 255));
+        }
+
+        if (display_lines) {
+            visualization.draw(screenWidth, screenHeight, rl.Color.init(0, 0, 255, 100), rl.Color.init(255, 0, 0, 255));
         }
 
         //----------------------------------------------------------------------------------
