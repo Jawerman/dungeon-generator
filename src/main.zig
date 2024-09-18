@@ -41,7 +41,7 @@ pub fn main() anyerror!void {
     var display_mst = false;
     var display_graph = false;
     var display_bsp = false;
-    var display_map = true;
+    var display_map = false;
     var display_lines = true;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -54,14 +54,14 @@ pub fn main() anyerror!void {
 
     const node = try BspNode.init(rl.Rectangle.init(0, 0, 1, 1), min_split_height_ratio, min_split_width_ratio, allocator, rand, split_colors.len);
     var graph = Graph.init(allocator);
-    try graph.buildFromBsp(node.?, 0.1, allocator);
+    try graph.buildFromBsp(node.?, 0.04, allocator);
 
     const minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
     var level = Level.init(allocator);
     try level.build(minimum_graph, 0.0025, 0.02, allocator);
 
     var visualization = LevelVisualization.init(allocator);
-    try visualization.addRoomsLines(level);
+    try visualization.buildFromLevel(level);
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
     rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
