@@ -93,7 +93,7 @@ pub fn main() anyerror!void {
     level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = checked_texture;
 
     var camera = rl.Camera{
-        .position = rl.Vector3.init(0.0, 50.0, 0.0),
+        .position = rl.Vector3.init(0.0, 20.0, 0.0),
         .target = rl.Vector3.init(100.0 / 2.0, 0.0, 100.0 / 2.0),
         .up = rl.Vector3.init(0.0, 1.0, 0.0),
         .fovy = 60.0,

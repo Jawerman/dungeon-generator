@@ -6,9 +6,11 @@ const Self = @This();
 
 const LineType = enum {
     room,
-    door,
+    door_outside,
+    door_inside,
 };
 
+// TODO: add min_height and max_height to the line definition
 pub const Line = struct {
     from: rl.Vector2,
     to: rl.Vector2,
@@ -32,15 +34,27 @@ pub const Line = struct {
 
 lines: std.ArrayList(Line),
 
+// TODO: add floor and ceiling height
+sectors: std.ArrayList(rl.Rectangle),
+
 pub fn init(allocator: std.mem.Allocator) Self {
     return .{
         .lines = std.ArrayList(Line).init(allocator),
+        .sectors = std.ArrayList(rl.Rectangle).init(allocator),
     };
 }
 
 pub fn buildFromLevel(self: *Self, level: Level) !void {
     try self.addRoomsLines(level);
     try self.addDoorsLines(level);
+    try self.addSectors(level);
+}
+
+fn addSectors(self: *Self, level: Level) !void {
+    try self.sectors.resize(level.rooms.items.len);
+    for (level.rooms.items) |room| {
+        try self.sectors.append(room.area);
+    }
 }
 
 fn addRoomsLines(self: *Self, level: Level) !void {
@@ -66,7 +80,7 @@ fn addRoomHorizontalLine(self: *Self, y: f32, x_min: f32, x_max: f32, door_ids: 
             try self.lines.append(Line.create(current_position, y, door.x, y, .room, reversed));
             current_position = door.x;
         }
-        try self.lines.append(Line.create(current_position, y, current_position + door.width, y, .door, reversed));
+        try self.lines.append(Line.create(current_position, y, current_position + door.width, y, .door_outside, reversed));
         current_position += door.width;
     }
 
@@ -83,7 +97,7 @@ fn addRoomVerticalLine(self: *Self, x: f32, y_min: f32, y_max: f32, door_ids: []
             try self.lines.append(Line.create(x, current_position, x, door.y, .room, reversed));
             current_position = door.y;
         }
-        try self.lines.append(Line.create(x, current_position, x, current_position + door.height, .door, reversed));
+        try self.lines.append(Line.create(x, current_position, x, current_position + door.height, .door_outside, reversed));
         current_position += door.height;
     }
 
@@ -94,18 +108,19 @@ fn addRoomVerticalLine(self: *Self, x: f32, y_min: f32, y_max: f32, door_ids: []
 
 fn addDoorLines(self: *Self, door: rl.Rectangle) !void {
     if (door.width > door.height) {
-        try self.lines.append(Line.create(door.x, door.y, door.x, door.y + door.height, .door, true));
-        try self.lines.append(Line.create(door.x + door.width, door.y, door.x + door.width, door.y + door.height, .door, false));
+        try self.lines.append(Line.create(door.x, door.y, door.x, door.y + door.height, .door_inside, true));
+        try self.lines.append(Line.create(door.x + door.width, door.y, door.x + door.width, door.y + door.height, .door_inside, false));
     } else {
-        try self.lines.append(Line.create(door.x, door.y, door.x + door.width, door.y, .door, false));
-        try self.lines.append(Line.create(door.x, door.y + door.height, door.x + door.width, door.y + door.height, .door, true));
+        try self.lines.append(Line.create(door.x, door.y, door.x + door.width, door.y, .door_inside, false));
+        try self.lines.append(Line.create(door.x, door.y + door.height, door.x + door.width, door.y + door.height, .door_inside, true));
     }
 }
 
 pub fn draw(self: Self, scale_x: f32, scale_y: f32, room_color: rl.Color, door_color: rl.Color) void {
     for (self.lines.items) |line| {
         const color = switch (line.type) {
-            .door => door_color,
+            .door_outside => door_color,
+            .door_inside => door_color,
             .room => room_color,
         };
         rl.drawLine(@intFromFloat(line.from.x * scale_x), @intFromFloat(line.from.y * scale_y), @intFromFloat(line.to.x * scale_x), @intFromFloat(line.to.y * scale_y), color);
