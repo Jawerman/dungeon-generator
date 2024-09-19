@@ -37,6 +37,10 @@ pub fn main() anyerror!void {
     const screenWidth = 1280;
     const screenHeight = 1280;
 
+    const door_size = 0.04;
+    const padding = 0.005;
+    const minimum_overlap_for_connecting_rooms = door_size * 1.5;
+
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
     rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
@@ -44,7 +48,7 @@ pub fn main() anyerror!void {
 
     // const depth_increase_interval = 0.5;
 
-    var display_mst = false;
+    var display_mst = true;
     var display_graph = false;
     var display_bsp = false;
     var display_map = false;
@@ -60,11 +64,11 @@ pub fn main() anyerror!void {
 
     const node = try BspNode.init(rl.Rectangle.init(0, 0, 1, 1), min_split_height_ratio, min_split_width_ratio, allocator, rand, split_colors.len);
     var graph = Graph.init(allocator);
-    try graph.buildFromBsp(node.?, 0.04, allocator);
+    try graph.buildFromBsp(node.?, minimum_overlap_for_connecting_rooms, allocator);
 
     const minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
     var level = Level.init(allocator);
-    try level.build(minimum_graph, 0.0025, 0.02, allocator);
+    try level.build(minimum_graph, padding, door_size, allocator);
 
     var visualization = LevelVisualization.init(allocator);
     try visualization.buildFromLevel(level);
@@ -77,7 +81,7 @@ pub fn main() anyerror!void {
     defer rl.unloadTexture(checked_texture);
 
     // -- mesh
-    var level_mesh = LeveMesh.init();
+    var level_mesh = LeveMesh.init(visualization, 0.1);
 
     rl.uploadMesh(&(level_mesh.mesh), false);
     // unloadModel takes care of unloading its mesh
@@ -89,8 +93,8 @@ pub fn main() anyerror!void {
     level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = checked_texture;
 
     var camera = rl.Camera{
-        .position = rl.Vector3.init(4.0, 0.5, 4.0),
-        .target = rl.Vector3.init(0.0, 0.0, 0.0),
+        .position = rl.Vector3.init(0.0, 50.0, 0.0),
+        .target = rl.Vector3.init(100.0 / 2.0, 0.0, 100.0 / 2.0),
         .up = rl.Vector3.init(0.0, 1.0, 0.0),
         .fovy = 60.0,
         .projection = rl.CameraProjection.camera_perspective,
@@ -135,7 +139,7 @@ pub fn main() anyerror!void {
             defer camera.end();
 
             // DRAW THE MESH
-            rl.drawModel(level_model, rl.Vector3.init(0, 0, 0), 10, rl.Color.white);
+            rl.drawModel(level_model, rl.Vector3.init(0, 0, 0), 100.0, rl.Color.white);
         }
 
         // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
