@@ -9,7 +9,7 @@ const LineType = enum {
     door,
 };
 
-const Line = struct {
+pub const Line = struct {
     from: rl.Vector2,
     to: rl.Vector2,
     type: LineType,

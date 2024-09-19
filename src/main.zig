@@ -5,6 +5,7 @@ const Graph = @import("Graph.zig");
 const MspBuilder = @import("minimum_spanning_tree_builder.zig");
 const Level = @import("Level.zig");
 const LevelVisualization = @import("LevelVisualization.zig");
+const LeveMesh = @import("LevelMesh.zig");
 
 const split_colors = [_]rl.Color{
     rl.Color.red,
@@ -25,16 +26,21 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: 
     }
 }
 
-// m: toggle minimum spanning tree
+// t: toggle minimum spanning tree
 // g: toggle graph
 // b: toggle bsp
-// a: toggle map
-// l: toggle lines
+// m: toggle map
+// l: toggle level
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
     const screenWidth = 1280;
     const screenHeight = 1280;
+
+    rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
+    rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
+    rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
+    defer rl.closeWindow(); // Close window and OpenGL context
 
     // const depth_increase_interval = 0.5;
 
@@ -63,10 +69,32 @@ pub fn main() anyerror!void {
     var visualization = LevelVisualization.init(allocator);
     try visualization.buildFromLevel(level);
 
-    rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
-    rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
-    rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
-    defer rl.closeWindow(); // Close window and OpenGL context
+    // Generate MESH
+    // -- checked image
+    const checked_image = rl.genImageChecked(2, 2, 1, 1, rl.Color.red, rl.Color.green);
+    const checked_texture = rl.loadTextureFromImage(checked_image);
+    rl.unloadImage(checked_image);
+    defer rl.unloadTexture(checked_texture);
+
+    // -- mesh
+    var level_mesh = LeveMesh.init();
+
+    rl.uploadMesh(&(level_mesh.mesh), false);
+    // unloadModel takes care of unloading its mesh
+    // defer rl.unloadMesh(level_mesh.mesh);
+
+    var level_model = rl.loadModelFromMesh(level_mesh.mesh);
+    defer rl.unloadModel(level_model);
+
+    level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = checked_texture;
+
+    var camera = rl.Camera{
+        .position = rl.Vector3.init(4.0, 0.5, 4.0),
+        .target = rl.Vector3.init(0.0, 0.0, 0.0),
+        .up = rl.Vector3.init(0.0, 1.0, 0.0),
+        .fovy = 60.0,
+        .projection = rl.CameraProjection.camera_perspective,
+    };
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -77,7 +105,7 @@ pub fn main() anyerror!void {
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         defer seconds_elapsed += 1.0 / 60.0;
         // Update
-        if (rl.isKeyPressed(rl.KeyboardKey.key_m)) {
+        if (rl.isKeyPressed(rl.KeyboardKey.key_t)) {
             display_mst = !display_mst;
         }
         if (rl.isKeyPressed(rl.KeyboardKey.key_g)) {
@@ -86,19 +114,29 @@ pub fn main() anyerror!void {
         if (rl.isKeyPressed(rl.KeyboardKey.key_b)) {
             display_bsp = !display_bsp;
         }
-        if (rl.isKeyPressed(rl.KeyboardKey.key_a)) {
+        if (rl.isKeyPressed(rl.KeyboardKey.key_m)) {
             display_map = !display_map;
         }
         if (rl.isKeyPressed(rl.KeyboardKey.key_l)) {
             display_lines = !display_lines;
         }
 
+        camera.update(rl.CameraMode.camera_free);
+
         // Draw
         //----------------------------------------------------------------------------------
+
         rl.beginDrawing();
         defer rl.endDrawing();
-
         rl.clearBackground(rl.Color.black);
+
+        {
+            camera.begin();
+            defer camera.end();
+
+            // DRAW THE MESH
+            rl.drawModel(level_model, rl.Vector3.init(0, 0, 0), 10, rl.Color.white);
+        }
 
         // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
 
