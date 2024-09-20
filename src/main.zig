@@ -15,6 +15,14 @@ const split_colors = [_]rl.Color{
     rl.Color.orange,
 };
 
+fn drawPositionAndTarget(position: rl.Vector3, target: rl.Vector3) !void {
+    var buf: [100:0]u8 = .{0} ** 100;
+    _ = try std.fmt.bufPrint(&buf, "position: {:.2} {:.2} {:.2}\ntarget: {:.2} {:.2} {:.2}", .{ position.x, position.y, position.z, target.x, target.y, target.z });
+    const ptr_to_buf = @as([*:0]const u8, &buf);
+
+    rl.drawText(ptr_to_buf, 10, 40, 20, rl.Color.white);
+}
+
 fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: comptime_int, color: rl.Color) void {
     for (0..screen_width / grid_size) |i| {
         const position: i32 = @intCast(i * grid_size);
@@ -95,7 +103,7 @@ pub fn main() anyerror!void {
     level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = checked_texture;
 
     var camera = rl.Camera{
-        .position = rl.Vector3.init(0.0, 20.0, 0.0),
+        .position = rl.Vector3.init(0.0, 3.0, 0.0),
         .target = rl.Vector3.init(100.0 / 2.0, 0.0, 100.0 / 2.0),
         .up = rl.Vector3.init(0.0, 1.0, 0.0),
         .fovy = 60.0,
@@ -127,7 +135,8 @@ pub fn main() anyerror!void {
             display_lines = !display_lines;
         }
 
-        camera.update(rl.CameraMode.camera_free);
+        // camera.update(rl.CameraMode.camera_free);
+        camera.update(rl.CameraMode.camera_first_person);
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -166,6 +175,9 @@ pub fn main() anyerror!void {
             visualization.draw(screenWidth, screenHeight, rl.Color.init(0, 0, 255, 100), rl.Color.init(255, 0, 0, 255));
         }
 
+        try drawPositionAndTarget(camera.position, camera.target);
+        // rl.drawText("Welcome to the third dimension!", 10, 40, 20, rl.Color.dark_gray);
+        rl.drawFPS(10, 10);
         //----------------------------------------------------------------------------------
     }
 }

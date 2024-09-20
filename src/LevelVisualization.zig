@@ -10,7 +10,11 @@ const LineType = enum {
     door_inside,
 };
 
-// TODO: add min_height and max_height to the line definition
+const SectorType = enum {
+    room,
+    door,
+};
+
 pub const Line = struct {
     from: rl.Vector2,
     to: rl.Vector2,
@@ -38,15 +42,22 @@ pub const Line = struct {
     }
 };
 
+pub const Sector = struct {
+    area: rl.Rectangle,
+    floor_height: f32,
+    ceil_height: f32,
+    type: SectorType,
+};
+
 lines: std.ArrayList(Line),
 
 // TODO: add floor and ceiling height
-sectors: std.ArrayList(rl.Rectangle),
+sectors: std.ArrayList(Sector),
 
 pub fn init(allocator: std.mem.Allocator) Self {
     return .{
         .lines = std.ArrayList(Line).init(allocator),
-        .sectors = std.ArrayList(rl.Rectangle).init(allocator),
+        .sectors = std.ArrayList(Sector).init(allocator),
     };
 }
 
@@ -57,10 +68,23 @@ pub fn buildFromLevel(self: *Self, level: Level, height: f32) !void {
 }
 
 fn addSectors(self: *Self, level: Level, height: f32) !void {
-    _ = height;
-    try self.sectors.resize(level.rooms.items.len);
+    try self.sectors.resize(level.rooms.items.len + level.doors.items.len);
+
     for (level.rooms.items) |room| {
-        try self.sectors.append(room.area);
+        try self.sectors.append(.{
+            .area = room.area,
+            .floor_height = 0,
+            .ceil_height = height,
+            .type = .room,
+        });
+    }
+    for (level.doors.items) |door| {
+        try self.sectors.append(.{
+            .area = door,
+            .floor_height = 0,
+            .ceil_height = height / 2.0,
+            .type = .door,
+        });
     }
 }
 
