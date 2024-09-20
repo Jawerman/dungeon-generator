@@ -8,14 +8,14 @@ mesh: rl.Mesh,
 quad_count: usize = 0,
 max_quads: usize,
 
-pub fn init(level: LevelVisualization, height: f32) Self {
+pub fn init(level: LevelVisualization) Self {
     const max_quads = level.lines.items.len + level.sectors.items.len;
     var result: Self = .{
         .mesh = allocateMesh(@intCast(max_quads * 2), @intCast(max_quads * 4), @intCast(max_quads * 6)),
         .max_quads = max_quads,
     };
     for (level.lines.items) |line| {
-        result.add_line(line, height);
+        result.add_line(line);
     }
     for (level.sectors.items) |sector| {
         result.add_sector(sector);
@@ -23,24 +23,24 @@ pub fn init(level: LevelVisualization, height: f32) Self {
     return result;
 }
 
-fn add_line(self: *Self, line: LevelVisualization.Line, height: f32) void {
-    const min_height = switch (line.type) {
-        .door_outside => height / 2.0,
-        .door_inside => 0.0,
-        .room => 0.0,
-    };
-
-    const max_height = switch (line.type) {
-        .door_outside => height,
-        .door_inside => height / 2.0,
-        .room => height,
-    };
+fn add_line(self: *Self, line: LevelVisualization.Line) void {
+    // const min_height = switch (line.type) {
+    //     .door_outside => height / 2.0,
+    //     .door_inside => 0.0,
+    //     .room => 0.0,
+    // };
+    //
+    // const max_height = switch (line.type) {
+    //     .door_outside => height,
+    //     .door_inside => height / 2.0,
+    //     .room => height,
+    // };
 
     const vertices = [4]rl.Vector3{
-        rl.Vector3.init(line.from.x, min_height, line.from.y),
-        rl.Vector3.init(line.to.x, min_height, line.to.y),
-        rl.Vector3.init(line.to.x, max_height, line.to.y),
-        rl.Vector3.init(line.from.x, max_height, line.from.y),
+        rl.Vector3.init(line.from.x, line.min_height, line.from.y),
+        rl.Vector3.init(line.to.x, line.min_height, line.to.y),
+        rl.Vector3.init(line.to.x, line.max_height, line.to.y),
+        rl.Vector3.init(line.from.x, line.max_height, line.from.y),
     };
     const first_side = vertices[1].subtract(vertices[0]);
     const second_side = vertices[2].subtract(vertices[1]);

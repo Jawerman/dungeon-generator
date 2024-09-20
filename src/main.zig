@@ -41,6 +41,8 @@ pub fn main() anyerror!void {
     const padding = 0.005;
     const minimum_overlap_for_connecting_rooms = door_size * 1.5;
 
+    const level_height = 0.1;
+
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
     rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
@@ -71,7 +73,7 @@ pub fn main() anyerror!void {
     try level.build(minimum_graph, padding, door_size, allocator);
 
     var visualization = LevelVisualization.init(allocator);
-    try visualization.buildFromLevel(level);
+    try visualization.buildFromLevel(level, level_height);
 
     // Generate MESH
     // -- checked image
@@ -81,7 +83,7 @@ pub fn main() anyerror!void {
     defer rl.unloadTexture(checked_texture);
 
     // -- mesh
-    var level_mesh = LeveMesh.init(visualization, 0.1);
+    var level_mesh = LeveMesh.init(visualization);
 
     rl.uploadMesh(&(level_mesh.mesh), false);
     // unloadModel takes care of unloading its mesh

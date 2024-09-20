@@ -15,19 +15,25 @@ pub const Line = struct {
     from: rl.Vector2,
     to: rl.Vector2,
     type: LineType,
+    min_height: f32,
+    max_height: f32,
 
-    fn create(x1: f32, y1: f32, x2: f32, y2: f32, lineType: LineType, reversed: bool) @This() {
+    fn create(x1: f32, y1: f32, x2: f32, y2: f32, min_height: f32, max_height: f32, lineType: LineType, reversed: bool) @This() {
         return if (reversed)
             .{
                 .from = rl.Vector2.init(x1, y1),
                 .to = rl.Vector2.init(x2, y2),
                 .type = lineType,
+                .min_height = min_height,
+                .max_height = max_height,
             }
         else
             .{
                 .from = rl.Vector2.init(x2, y2),
                 .to = rl.Vector2.init(x1, y1),
                 .type = lineType,
+                .min_height = min_height,
+                .max_height = max_height,
             };
     }
 };
@@ -44,75 +50,76 @@ pub fn init(allocator: std.mem.Allocator) Self {
     };
 }
 
-pub fn buildFromLevel(self: *Self, level: Level) !void {
-    try self.addRoomsLines(level);
-    try self.addDoorsLines(level);
-    try self.addSectors(level);
+pub fn buildFromLevel(self: *Self, level: Level, height: f32) !void {
+    try self.addRoomsLines(level, height);
+    try self.addDoorsLines(level, height);
+    try self.addSectors(level, height);
 }
 
-fn addSectors(self: *Self, level: Level) !void {
+fn addSectors(self: *Self, level: Level, height: f32) !void {
+    _ = height;
     try self.sectors.resize(level.rooms.items.len);
     for (level.rooms.items) |room| {
         try self.sectors.append(room.area);
     }
 }
 
-fn addRoomsLines(self: *Self, level: Level) !void {
+fn addRoomsLines(self: *Self, level: Level, height: f32) !void {
     for (level.rooms.items) |room| {
-        try self.addRoomHorizontalLine(room.area.y, room.area.x, room.area.x + room.area.width, room.up_doors.items, level.doors.items, false);
-        try self.addRoomHorizontalLine(room.area.y + room.area.height, room.area.x, room.area.x + room.area.width, room.down_doors.items, level.doors.items, true);
-        try self.addRoomVerticalLine(room.area.x, room.area.y, room.area.y + room.area.height, room.left_doors.items, level.doors.items, true);
-        try self.addRoomVerticalLine(room.area.x + room.area.width, room.area.y, room.area.y + room.area.height, room.right_doors.items, level.doors.items, false);
+        try self.addRoomHorizontalLine(room.area.y, room.area.x, room.area.x + room.area.width, height, room.up_doors.items, level.doors.items, false);
+        try self.addRoomHorizontalLine(room.area.y + room.area.height, room.area.x, room.area.x + room.area.width, height, room.down_doors.items, level.doors.items, true);
+        try self.addRoomVerticalLine(room.area.x, room.area.y, room.area.y + room.area.height, height, room.left_doors.items, level.doors.items, true);
+        try self.addRoomVerticalLine(room.area.x + room.area.width, room.area.y, room.area.y + room.area.height, height, room.right_doors.items, level.doors.items, false);
     }
 }
 
-pub fn addDoorsLines(self: *Self, level: Level) !void {
+pub fn addDoorsLines(self: *Self, level: Level, height: f32) !void {
     for (level.doors.items) |door| {
-        try self.addDoorLines(door);
+        try self.addDoorLines(door, height);
     }
 }
 
-fn addRoomHorizontalLine(self: *Self, y: f32, x_min: f32, x_max: f32, door_ids: []usize, doors: []rl.Rectangle, reversed: bool) !void {
+fn addRoomHorizontalLine(self: *Self, y: f32, x_min: f32, x_max: f32, height: f32, door_ids: []usize, doors: []rl.Rectangle, reversed: bool) !void {
     var current_position = x_min;
     for (door_ids) |door_id| {
         const door = doors[door_id];
         if (door.x > current_position) {
-            try self.lines.append(Line.create(current_position, y, door.x, y, .room, reversed));
+            try self.lines.append(Line.create(current_position, y, door.x, y, 0, height, .room, reversed));
             current_position = door.x;
         }
-        try self.lines.append(Line.create(current_position, y, current_position + door.width, y, .door_outside, reversed));
+        try self.lines.append(Line.create(current_position, y, current_position + door.width, y, height / 2.0, height, .door_outside, reversed));
         current_position += door.width;
     }
 
     if (current_position < x_max) {
-        try self.lines.append(Line.create(current_position, y, x_max, y, .room, reversed));
+        try self.lines.append(Line.create(current_position, y, x_max, y, 0, height, .room, reversed));
     }
 }
 
-fn addRoomVerticalLine(self: *Self, x: f32, y_min: f32, y_max: f32, door_ids: []usize, doors: []rl.Rectangle, reversed: bool) !void {
+fn addRoomVerticalLine(self: *Self, x: f32, y_min: f32, y_max: f32, height: f32, door_ids: []usize, doors: []rl.Rectangle, reversed: bool) !void {
     var current_position = y_min;
     for (door_ids) |door_id| {
         const door = doors[door_id];
         if (door.y > current_position) {
-            try self.lines.append(Line.create(x, current_position, x, door.y, .room, reversed));
+            try self.lines.append(Line.create(x, current_position, x, door.y, 0, height, .room, reversed));
             current_position = door.y;
         }
-        try self.lines.append(Line.create(x, current_position, x, current_position + door.height, .door_outside, reversed));
+        try self.lines.append(Line.create(x, current_position, x, current_position + door.height, height / 2.0, height, .door_outside, reversed));
         current_position += door.height;
     }
 
     if (current_position < y_max) {
-        try self.lines.append(Line.create(x, current_position, x, y_max, .room, reversed));
+        try self.lines.append(Line.create(x, current_position, x, y_max, 0, height, .room, reversed));
     }
 }
 
-fn addDoorLines(self: *Self, door: rl.Rectangle) !void {
+fn addDoorLines(self: *Self, door: rl.Rectangle, height: f32) !void {
     if (door.width > door.height) {
-        try self.lines.append(Line.create(door.x, door.y, door.x, door.y + door.height, .door_inside, true));
-        try self.lines.append(Line.create(door.x + door.width, door.y, door.x + door.width, door.y + door.height, .door_inside, false));
+        try self.lines.append(Line.create(door.x, door.y, door.x, door.y + door.height, 0, height / 2.0, .door_inside, true));
+        try self.lines.append(Line.create(door.x + door.width, door.y, door.x + door.width, door.y + door.height, 0, height / 2.0, .door_inside, false));
     } else {
-        try self.lines.append(Line.create(door.x, door.y, door.x + door.width, door.y, .door_inside, false));
-        try self.lines.append(Line.create(door.x, door.y + door.height, door.x + door.width, door.y + door.height, .door_inside, true));
+        try self.lines.append(Line.create(door.x, door.y, door.x + door.width, door.y, 0, height / 2.0, .door_inside, false));
+        try self.lines.append(Line.create(door.x, door.y + door.height, door.x + door.width, door.y + door.height, 0, height / 2.0, .door_inside, true));
     }
 }
 
