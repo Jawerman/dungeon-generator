@@ -23,6 +23,33 @@ fn drawPositionAndTarget(position: rl.Vector3, target: rl.Vector3) !void {
     rl.drawText(ptr_to_buf, 10, 40, 20, rl.Color.white);
 }
 
+fn drawMousePosition(width: f32, height: f32) !void {
+    const position = rl.getMousePosition();
+    var buf: [100:0]u8 = .{0} ** 100;
+    _ = try std.fmt.bufPrint(&buf, "position: {:.2} {:.2}", .{ position.x / width, position.y / height });
+    const ptr_to_buf = @as([*:0]const u8, &buf);
+
+    rl.drawText(ptr_to_buf, 10, 100, 20, rl.Color.white);
+}
+
+fn drawPlayerPosition(position: rl.Vector2) !void {
+    var buf: [100:0]u8 = .{0} ** 100;
+    _ = try std.fmt.bufPrint(&buf, "player: {:.2} {:.2}", .{ position.x, position.y });
+    const ptr_to_buf = @as([*:0]const u8, &buf);
+
+    rl.drawText(ptr_to_buf, 10, 120, 20, rl.Color.white);
+}
+
+fn drawPlayer(position: rl.Vector2, orientation: rl.Vector2, size: f32) void {
+    const angle = 4.0 * (std.math.pi / 5.0);
+    const front_point = position.add(orientation.scale(size));
+    const back_left = position.add(orientation.rotate(-angle).scale(size));
+    const back_right = position.add(orientation.rotate(angle).scale(size));
+
+    // rl.drawTriangleLines(front_point, back_left, back_right, rl.Color.dark_blue);
+    rl.drawTriangle(front_point, back_left, back_right, rl.Color.dark_blue);
+}
+
 fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: comptime_int, color: rl.Color) void {
     for (0..screen_width / grid_size) |i| {
         const position: i32 = @intCast(i * grid_size);
@@ -39,9 +66,11 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: 
 // b: toggle bsp
 // m: toggle map
 // l: toggle level
+// 3: toggle 3d
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
+    const map_scale = 100.0;
     const screenWidth = 1280;
     const screenHeight = 1280;
 
@@ -56,13 +85,12 @@ pub fn main() anyerror!void {
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
     defer rl.closeWindow(); // Close window and OpenGL context
 
-    // const depth_increase_interval = 0.5;
-
-    var display_mst = true;
+    var display_mst = false;
     var display_graph = false;
     var display_bsp = false;
     var display_map = false;
     var display_lines = true;
+    var display_3d_view = true;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
@@ -85,13 +113,13 @@ pub fn main() anyerror!void {
 
     // Generate MESH
     // -- checked image
-    const checked_image = rl.genImageChecked(2, 2, 1, 1, rl.Color.red, rl.Color.green);
+    const checked_image = rl.genImageChecked(2, 2, 1, 1, rl.Color.dark_gray, rl.Color.dark_brown);
     const checked_texture = rl.loadTextureFromImage(checked_image);
     rl.unloadImage(checked_image);
     defer rl.unloadTexture(checked_texture);
 
     // -- mesh
-    var level_mesh = LeveMesh.init(visualization);
+    var level_mesh = LeveMesh.init(visualization, map_scale / 3.0);
 
     rl.uploadMesh(&(level_mesh.mesh), false);
     // unloadModel takes care of unloading its mesh
@@ -103,8 +131,8 @@ pub fn main() anyerror!void {
     level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = checked_texture;
 
     var camera = rl.Camera{
-        .position = rl.Vector3.init(0.0, 3.0, 0.0),
-        .target = rl.Vector3.init(100.0 / 2.0, 0.0, 100.0 / 2.0),
+        .position = rl.Vector3.init(map_scale / 2.0, 3.0, map_scale / 2.0),
+        .target = rl.Vector3.init(map_scale / 2.0, 3.0, 0.0),
         .up = rl.Vector3.init(0.0, 1.0, 0.0),
         .fovy = 60.0,
         .projection = rl.CameraProjection.camera_perspective,
@@ -134,10 +162,11 @@ pub fn main() anyerror!void {
         if (rl.isKeyPressed(rl.KeyboardKey.key_l)) {
             display_lines = !display_lines;
         }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_v)) {
+            display_3d_view = !display_3d_view;
+        }
 
-        // camera.update(rl.CameraMode.camera_free);
         camera.update(rl.CameraMode.camera_first_person);
-
         // Draw
         //----------------------------------------------------------------------------------
 
@@ -145,12 +174,12 @@ pub fn main() anyerror!void {
         defer rl.endDrawing();
         rl.clearBackground(rl.Color.black);
 
-        {
+        if (display_3d_view) {
             camera.begin();
             defer camera.end();
 
             // DRAW THE MESH
-            rl.drawModel(level_model, rl.Vector3.init(0, 0, 0), 100.0, rl.Color.white);
+            rl.drawModel(level_model, rl.Vector3.init(0, 0, 0), map_scale, rl.Color.white);
         }
 
         // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
@@ -173,9 +202,16 @@ pub fn main() anyerror!void {
 
         if (display_lines) {
             visualization.draw(screenWidth, screenHeight, rl.Color.init(0, 0, 255, 100), rl.Color.init(255, 0, 0, 255));
+            const player_pos = rl.Vector2.init((camera.position.x / map_scale) * screenWidth, (camera.position.z / map_scale) * screenHeight);
+            const camera_orientation = camera.target.subtract(camera.position);
+            const player_orientation = rl.Vector2.init(camera_orientation.x, camera_orientation.z).normalize();
+
+            drawPlayer(player_pos, player_orientation, 10.0);
+            try drawPlayerPosition(player_pos);
         }
 
         try drawPositionAndTarget(camera.position, camera.target);
+        try drawMousePosition(screenWidth, screenHeight);
         // rl.drawText("Welcome to the third dimension!", 10, 40, 20, rl.Color.dark_gray);
         rl.drawFPS(10, 10);
         //----------------------------------------------------------------------------------

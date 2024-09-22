@@ -8,14 +8,14 @@ mesh: rl.Mesh,
 quad_count: usize = 0,
 max_quads: usize,
 
-pub fn init(level: LevelVisualization) Self {
+pub fn init(level: LevelVisualization, tiling_ratio: f32) Self {
     const max_quads = level.lines.items.len + (level.sectors.items.len * 2);
     var result: Self = .{
         .mesh = allocateMesh(@intCast(max_quads * 2), @intCast(max_quads * 4), @intCast(max_quads * 6)),
         .max_quads = max_quads,
     };
     for (level.lines.items) |line| {
-        result.add_line(line);
+        result.add_line(line, tiling_ratio);
     }
     for (level.sectors.items) |sector| {
         result.add_sector_floor(sector);
@@ -24,7 +24,7 @@ pub fn init(level: LevelVisualization) Self {
     return result;
 }
 
-fn add_line(self: *Self, line: LevelVisualization.Line) void {
+fn add_line(self: *Self, line: LevelVisualization.Line, tiling_ratio: f32) void {
     const vertices = [4]rl.Vector3{
         rl.Vector3.init(line.from.x, line.min_height, line.from.y),
         rl.Vector3.init(line.to.x, line.min_height, line.to.y),
@@ -36,15 +36,27 @@ fn add_line(self: *Self, line: LevelVisualization.Line) void {
 
     const normal: rl.Vector3 = first_side.crossProduct(second_side).normalize();
 
+    const vector = line.to.subtract(line.from);
+    var lenght = vector.length();
+    if (vector.x < 0 or vector.y < 0) {
+        lenght = -lenght;
+    }
+
     const indices: [6]u16 = .{ 0, 3, 2, 0, 2, 1 };
 
-    const tex_coords: [4]rl.Vector2 = .{
-        rl.Vector2.init(0, 0),
-        rl.Vector2.init(0, 1),
-        rl.Vector2.init(1, 1),
-        rl.Vector2.init(1, 0),
-    };
+    const origin = line.from.x + line.from.y;
+    const min_x = origin * tiling_ratio;
+    const max_x = (origin + lenght) * tiling_ratio;
 
+    const max_y = line.min_height * tiling_ratio;
+    const min_y = line.max_height * tiling_ratio;
+
+    const tex_coords: [4]rl.Vector2 = .{
+        rl.Vector2.init(min_x, max_y),
+        rl.Vector2.init(max_x, max_y),
+        rl.Vector2.init(max_x, min_y),
+        rl.Vector2.init(min_x, min_y),
+    };
     self.add_quad(vertices, indices, tex_coords, normal);
 }
 

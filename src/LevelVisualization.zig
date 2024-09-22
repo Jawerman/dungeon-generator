@@ -23,7 +23,7 @@ pub const Line = struct {
     max_height: f32,
 
     fn create(x1: f32, y1: f32, x2: f32, y2: f32, min_height: f32, max_height: f32, lineType: LineType, reversed: bool) @This() {
-        return if (reversed)
+        const result: @This() = if (reversed)
             .{
                 .from = rl.Vector2.init(x1, y1),
                 .to = rl.Vector2.init(x2, y2),
@@ -39,6 +39,9 @@ pub const Line = struct {
                 .min_height = min_height,
                 .max_height = max_height,
             };
+
+        std.debug.print("\n\tLine (x:{} y:{}) - (x:{} y:{})", .{ result.from.x, result.from.y, result.to.x, result.to.y });
+        return result;
     }
 };
 
@@ -51,7 +54,6 @@ pub const Sector = struct {
 
 lines: std.ArrayList(Line),
 
-// TODO: add floor and ceiling height
 sectors: std.ArrayList(Sector),
 
 pub fn init(allocator: std.mem.Allocator) Self {
@@ -89,10 +91,14 @@ fn addSectors(self: *Self, level: Level, height: f32) !void {
 }
 
 fn addRoomsLines(self: *Self, level: Level, height: f32) !void {
-    for (level.rooms.items) |room| {
+    for (level.rooms.items, 0..) |room, i| {
+        std.debug.print("\nLines for Room: {} UP", .{i});
         try self.addRoomHorizontalLine(room.area.y, room.area.x, room.area.x + room.area.width, height, room.up_doors.items, level.doors.items, false);
+        std.debug.print("\nLines for Room: {} DOWN", .{i});
         try self.addRoomHorizontalLine(room.area.y + room.area.height, room.area.x, room.area.x + room.area.width, height, room.down_doors.items, level.doors.items, true);
+        std.debug.print("\nLines for Room: {} LEFT", .{i});
         try self.addRoomVerticalLine(room.area.x, room.area.y, room.area.y + room.area.height, height, room.left_doors.items, level.doors.items, true);
+        std.debug.print("\nLines for Room: {} RIGHT", .{i});
         try self.addRoomVerticalLine(room.area.x + room.area.width, room.area.y, room.area.y + room.area.height, height, room.right_doors.items, level.doors.items, false);
     }
 }

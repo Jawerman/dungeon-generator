@@ -46,6 +46,32 @@ pub fn build(self: *Self, graph: Graph, padding: f32, door_size: f32, allocator:
     for (self.rooms.items) |*room| {
         sortRoomDoors(room, self.doors.items);
     }
+    self.print_debug_info();
+}
+
+fn print_debug_info(self: Self) void {
+    for (self.doors.items, 0..) |door, i| {
+        std.debug.print("\nDOOR {}: x:{}, y:{}, width: {}, height: {}", .{ i, door.x, door.y, door.width, door.height });
+    }
+    for (self.rooms.items, 0..) |room, i| {
+        std.debug.print("\nROOM {}: x:{}, y:{}, width: {}, height: {}", .{ i, room.area.x, room.area.y, room.area.width, room.area.height });
+        std.debug.print("\n\tUp: ", .{});
+        for (room.up_doors.items) |door| {
+            std.debug.print("{}, ", .{door});
+        }
+        std.debug.print("\n\tDown: ", .{});
+        for (room.down_doors.items) |door| {
+            std.debug.print("{}, ", .{door});
+        }
+        std.debug.print("\n\tLeft: ", .{});
+        for (room.left_doors.items) |door| {
+            std.debug.print("{}, ", .{door});
+        }
+        std.debug.print("\n\tRight: ", .{});
+        for (room.right_doors.items) |door| {
+            std.debug.print("{}, ", .{door});
+        }
+    }
 }
 
 fn addDoor(self: *Self, edge: Graph.Edge, door_size: f32) !void {
@@ -124,9 +150,9 @@ pub fn draw(self: Self, scale_x: f32, scale_y: f32, room_color: rl.Color, door_c
 }
 
 fn cmpDoorsX(context: []rl.Rectangle, a: usize, b: usize) bool {
-    return context[a].x > context[b].x;
+    return context[a].x < context[b].x;
 }
 
 fn cmpDoorsY(context: []rl.Rectangle, a: usize, b: usize) bool {
-    return context[a].y > context[b].y;
+    return context[a].y < context[b].y;
 }
