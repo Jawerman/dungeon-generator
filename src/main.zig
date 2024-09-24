@@ -123,8 +123,7 @@ pub fn main() anyerror!void {
     defer rl.unloadTexture(texture);
 
     // Generate MESH
-    var level_mesh = LeveMesh.init(visualization, tiling_ratio);
-
+    var level_mesh = try LeveMesh.init(visualization, tiling_ratio, allocator);
     rl.uploadMesh(&(level_mesh.mesh), false);
     // unloadModel takes care of unloading its mesh
     // defer rl.unloadMesh(level_mesh.mesh);

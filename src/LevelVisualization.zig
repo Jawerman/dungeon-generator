@@ -104,7 +104,8 @@ fn addRoomsLines(self: *Self, level: Level, height: f32) !void {
 }
 
 pub fn addDoorsLines(self: *Self, level: Level, height: f32) !void {
-    for (level.doors.items) |door| {
+    for (level.doors.items, 0..) |door, i| {
+        std.debug.print("\nLines for Door: {}", .{i});
         try self.addDoorLines(door, height);
     }
 }

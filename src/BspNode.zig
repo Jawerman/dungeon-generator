@@ -182,6 +182,7 @@ pub fn getPrng() !std.rand.Random {
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
+        seed = 6553374428587271123;
         std.debug.print("Seed {}", .{seed});
         break :blk seed;
     });

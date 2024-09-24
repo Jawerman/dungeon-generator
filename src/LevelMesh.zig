@@ -1,30 +1,35 @@
 const rl = @import("raylib");
 const LevelVisualization = @import("LevelVisualization.zig");
 const std = @import("std");
+const MeshBuilder = @import("Mesh.zig");
 
 const Self = @This();
 
 mesh: rl.Mesh,
+mesh_builder: MeshBuilder,
 quad_count: usize = 0,
 max_quads: usize,
 
-pub fn init(level: LevelVisualization, tiling_ratio: f32) Self {
+pub fn init(level: LevelVisualization, tiling_ratio: f32, allocator: std.mem.Allocator) !Self {
     const max_quads = level.lines.items.len + (level.sectors.items.len * 2);
     var result: Self = .{
-        .mesh = allocateMesh(@intCast(max_quads * 2), @intCast(max_quads * 4), @intCast(max_quads * 6)),
+        .mesh = undefined,
+        .mesh_builder = MeshBuilder.init(allocator),
         .max_quads = max_quads,
     };
     for (level.lines.items) |line| {
-        result.add_line(line, tiling_ratio);
+        try result.add_line(line, tiling_ratio);
     }
     for (level.sectors.items) |sector| {
-        result.add_sector_floor(sector);
-        result.add_sector_ceil(sector);
+        try result.add_sector_floor(sector);
+        try result.add_sector_ceil(sector);
     }
+
+    result.mesh = result.mesh_builder.buildMesh();
     return result;
 }
 
-fn add_line(self: *Self, line: LevelVisualization.Line, tiling_ratio: f32) void {
+fn add_line(self: *Self, line: LevelVisualization.Line, tiling_ratio: f32) !void {
     const vertices = [4]rl.Vector3{
         rl.Vector3.init(line.from.x, line.min_height, line.from.y),
         rl.Vector3.init(line.to.x, line.min_height, line.to.y),
@@ -34,7 +39,8 @@ fn add_line(self: *Self, line: LevelVisualization.Line, tiling_ratio: f32) void 
     const first_side = vertices[1].subtract(vertices[0]);
     const second_side = vertices[2].subtract(vertices[1]);
 
-    const normal: rl.Vector3 = first_side.crossProduct(second_side).normalize();
+    // const normal: rl.Vector3 = first_side.crossProduct(second_side).normalize();
+    const normals = [_]rl.Vector3{first_side.crossProduct(second_side).normalize()} ** 3;
 
     const vector = line.to.subtract(line.from);
     var lenght = vector.length();
@@ -51,16 +57,16 @@ fn add_line(self: *Self, line: LevelVisualization.Line, tiling_ratio: f32) void 
     const max_y = -line.max_height * tiling_ratio;
     const min_y = -line.min_height * tiling_ratio;
 
-    const tex_coords: [4]rl.Vector2 = .{
+    const texcoords: [4]rl.Vector2 = .{
         rl.Vector2.init(min_x, min_y),
         rl.Vector2.init(max_x, min_y),
         rl.Vector2.init(max_x, max_y),
         rl.Vector2.init(min_x, max_y),
     };
-    self.add_quad(vertices, indices, tex_coords, normal);
+    try self.mesh_builder.add_submesh(&vertices, &indices, &texcoords, &normals);
 }
 
-fn add_sector_floor(self: *Self, sector: LevelVisualization.Sector) void {
+fn add_sector_floor(self: *Self, sector: LevelVisualization.Sector) !void {
     const area = sector.area;
     const vertices = [4]rl.Vector3{
         rl.Vector3.init(area.x, sector.floor_height, area.y),
@@ -71,21 +77,22 @@ fn add_sector_floor(self: *Self, sector: LevelVisualization.Sector) void {
     const first_side = vertices[1].subtract(vertices[0]);
     const second_side = vertices[2].subtract(vertices[1]);
 
-    const normal: rl.Vector3 = first_side.crossProduct(second_side).normalize();
+    // const normal: rl.Vector3 = first_side.crossProduct(second_side).normalize();
+    const normals = [_]rl.Vector3{first_side.crossProduct(second_side).normalize()} ** 3;
 
     const indices: [6]u16 = .{ 0, 3, 2, 0, 2, 1 };
 
-    const tex_coords: [4]rl.Vector2 = .{
+    const texcoords: [4]rl.Vector2 = .{
         rl.Vector2.init(0, 0),
         rl.Vector2.init(0, 1),
         rl.Vector2.init(1, 1),
         rl.Vector2.init(1, 0),
     };
 
-    self.add_quad(vertices, indices, tex_coords, normal);
+    try self.mesh_builder.add_submesh(&vertices, &indices, &texcoords, &normals);
 }
 
-fn add_sector_ceil(self: *Self, sector: LevelVisualization.Sector) void {
+fn add_sector_ceil(self: *Self, sector: LevelVisualization.Sector) !void {
     const area = sector.area;
     const vertices = [4]rl.Vector3{
         rl.Vector3.init(area.x, sector.ceil_height, area.y),
@@ -96,18 +103,19 @@ fn add_sector_ceil(self: *Self, sector: LevelVisualization.Sector) void {
     const first_side = vertices[1].subtract(vertices[0]);
     const second_side = vertices[2].subtract(vertices[1]);
 
-    const normal: rl.Vector3 = first_side.crossProduct(second_side).normalize();
+    // const normal: rl.Vector3 = first_side.crossProduct(second_side).normalize();
+    const normals = [_]rl.Vector3{first_side.crossProduct(second_side).normalize()} ** 3;
 
     const indices: [6]u16 = .{ 0, 3, 2, 0, 2, 1 };
 
-    const tex_coords: [4]rl.Vector2 = .{
+    const texcoords: [4]rl.Vector2 = .{
         rl.Vector2.init(0, 0),
         rl.Vector2.init(0, 1),
         rl.Vector2.init(1, 1),
         rl.Vector2.init(1, 0),
     };
 
-    self.add_quad(vertices, indices, tex_coords, normal);
+    try self.mesh_builder.add_submesh(&vertices, &indices, &texcoords, &normals);
 }
 
 // TODO: Return an error when the quad limit is reached
@@ -149,8 +157,13 @@ fn add_quad_vertices(self: *Self, index: usize, vertices: [4]rl.Vector3) *Self {
     for (0..4) |i| {
         const offset = i * 3;
         self.mesh.vertices[quad_offset + offset + 0] = vertices[i].x;
+        std.debug.print("\nvertices[{}]: {}", .{ quad_offset + offset + 0, vertices[i].x });
+
         self.mesh.vertices[quad_offset + offset + 1] = vertices[i].y;
+        std.debug.print("\nvertices[{}]: {}", .{ quad_offset + offset + 1, vertices[i].y });
+
         self.mesh.vertices[quad_offset + offset + 2] = vertices[i].z;
+        std.debug.print("\nvertices[{}]: {}", .{ quad_offset + offset + 2, vertices[i].z });
     }
     return self;
 }
@@ -160,8 +173,13 @@ fn add_quad_normals(self: *Self, index: usize, normal: rl.Vector3) *Self {
     for (0..4) |i| {
         const offset = i * 3;
         self.mesh.normals[quad_offset + offset + 0] = normal.x;
+        std.debug.print("\nnormals[{}]: {}", .{ quad_offset + offset + 0, normal.x });
+
         self.mesh.normals[quad_offset + offset + 1] = normal.y;
+        std.debug.print("\nnormals[{}]: {}", .{ quad_offset + offset + 1, normal.y });
+
         self.mesh.normals[quad_offset + offset + 2] = normal.z;
+        std.debug.print("\nnormals[{}]: {}", .{ quad_offset + offset + 2, normal.z });
     }
     return self;
 }
@@ -172,6 +190,7 @@ fn add_quad_indices(self: *Self, index: usize, indices: [6]u16) *Self {
 
     for (0..6) |i| {
         self.mesh.indices[i + quad_offset] = @intCast(indices[i] + quad_index_offset);
+        std.debug.print("\nindices[{}]: {}", .{ i + quad_offset, @as(u16, @intCast(indices[i] + quad_index_offset)) });
     }
     return self;
 }
@@ -181,7 +200,10 @@ fn add_tex_coords(self: *Self, index: usize, tex_coords: [4]rl.Vector2) *Self {
     for (0..4) |i| {
         const offset = i * 2;
         self.mesh.texcoords[quad_offset + offset + 0] = tex_coords[i].x;
+        std.debug.print("\ntexcoords[{}]: {}", .{ quad_offset + offset + 0, tex_coords[i].x });
+
         self.mesh.texcoords[quad_offset + offset + 1] = tex_coords[i].y;
+        std.debug.print("\ntexcoords[{}]: {}", .{ quad_offset + offset + 1, tex_coords[i].y });
     }
     return self;
 }
