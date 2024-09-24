@@ -23,7 +23,7 @@ pub const Line = struct {
     max_height: f32,
 
     fn create(x1: f32, y1: f32, x2: f32, y2: f32, min_height: f32, max_height: f32, lineType: LineType, reversed: bool) @This() {
-        const result: @This() = if (reversed)
+        const result: @This() = if (!reversed)
             .{
                 .from = rl.Vector2.init(x1, y1),
                 .to = rl.Vector2.init(x2, y2),
@@ -163,7 +163,7 @@ pub fn draw(self: Self, scale_x: f32, scale_y: f32, room_color: rl.Color, door_c
         rl.drawLine(@intFromFloat(line.from.x * scale_x), @intFromFloat(line.from.y * scale_y), @intFromFloat(line.to.x * scale_x), @intFromFloat(line.to.y * scale_y), color);
 
         const middle_point = rl.Vector2.init((line.from.x + line.to.x) / 2.0, (line.from.y + line.to.y) / 2.0);
-        const orientation = line.to.subtract(line.from).rotate(-std.math.pi / 2.0).normalize().scale(0.005);
+        const orientation = line.to.subtract(line.from).rotate(std.math.pi / 2.0).normalize().scale(0.005);
         rl.drawLine(@intFromFloat(middle_point.x * scale_x), @intFromFloat(middle_point.y * scale_y), @intFromFloat((middle_point.x + orientation.x) * scale_x), @intFromFloat((middle_point.y + orientation.y) * scale_y), color);
     }
 }

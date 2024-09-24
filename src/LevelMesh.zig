@@ -42,20 +42,20 @@ fn add_line(self: *Self, line: LevelVisualization.Line, tiling_ratio: f32) void 
         lenght = -lenght;
     }
 
-    const indices: [6]u16 = .{ 0, 3, 2, 0, 2, 1 };
+    const indices: [6]u16 = .{ 0, 1, 2, 0, 2, 3 };
 
     const origin = line.from.x + line.from.y;
     const min_x = origin * tiling_ratio;
     const max_x = (origin + lenght) * tiling_ratio;
 
-    const max_y = line.min_height * tiling_ratio;
-    const min_y = line.max_height * tiling_ratio;
+    const max_y = -line.max_height * tiling_ratio;
+    const min_y = -line.min_height * tiling_ratio;
 
     const tex_coords: [4]rl.Vector2 = .{
-        rl.Vector2.init(min_x, max_y),
-        rl.Vector2.init(max_x, max_y),
-        rl.Vector2.init(max_x, min_y),
         rl.Vector2.init(min_x, min_y),
+        rl.Vector2.init(max_x, min_y),
+        rl.Vector2.init(max_x, max_y),
+        rl.Vector2.init(min_x, max_y),
     };
     self.add_quad(vertices, indices, tex_coords, normal);
 }

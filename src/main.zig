@@ -46,7 +46,6 @@ fn drawPlayer(position: rl.Vector2, orientation: rl.Vector2, size: f32) void {
     const back_left = position.add(orientation.rotate(-angle).scale(size));
     const back_right = position.add(orientation.rotate(angle).scale(size));
 
-    // rl.drawTriangleLines(front_point, back_left, back_right, rl.Color.dark_blue);
     rl.drawTriangle(front_point, back_left, back_right, rl.Color.dark_blue);
 }
 
@@ -66,7 +65,8 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: 
 // b: toggle bsp
 // m: toggle map
 // l: toggle level
-// 3: toggle 3d
+// v: toggle 3d
+// c: toggle camera update
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -79,6 +79,7 @@ pub fn main() anyerror!void {
     const minimum_overlap_for_connecting_rooms = door_size * 1.5;
 
     const level_height = 0.1;
+    const tiling_ratio = map_scale / 10.0;
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
     rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
@@ -91,6 +92,7 @@ pub fn main() anyerror!void {
     var display_map = false;
     var display_lines = true;
     var display_3d_view = true;
+    var enable_camera_update = true;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
@@ -111,15 +113,17 @@ pub fn main() anyerror!void {
     var visualization = LevelVisualization.init(allocator);
     try visualization.buildFromLevel(level, level_height);
 
-    // Generate MESH
-    // -- checked image
+    // Checked texture
     const checked_image = rl.genImageChecked(2, 2, 1, 1, rl.Color.dark_gray, rl.Color.dark_brown);
     const checked_texture = rl.loadTextureFromImage(checked_image);
     rl.unloadImage(checked_image);
     defer rl.unloadTexture(checked_texture);
 
-    // -- mesh
-    var level_mesh = LeveMesh.init(visualization, map_scale / 3.0);
+    const texture = rl.loadTexture("./assets/cubicmap_atlas.png");
+    defer rl.unloadTexture(texture);
+
+    // Generate MESH
+    var level_mesh = LeveMesh.init(visualization, tiling_ratio);
 
     rl.uploadMesh(&(level_mesh.mesh), false);
     // unloadModel takes care of unloading its mesh
@@ -128,7 +132,7 @@ pub fn main() anyerror!void {
     var level_model = rl.loadModelFromMesh(level_mesh.mesh);
     defer rl.unloadModel(level_model);
 
-    level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = checked_texture;
+    level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = texture;
 
     var camera = rl.Camera{
         .position = rl.Vector3.init(map_scale / 2.0, 3.0, map_scale / 2.0),
@@ -165,8 +169,13 @@ pub fn main() anyerror!void {
         if (rl.isKeyPressed(rl.KeyboardKey.key_v)) {
             display_3d_view = !display_3d_view;
         }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_c)) {
+            enable_camera_update = !enable_camera_update;
+        }
 
-        camera.update(rl.CameraMode.camera_first_person);
+        if (enable_camera_update) {
+            camera.update(rl.CameraMode.camera_first_person);
+        }
         // Draw
         //----------------------------------------------------------------------------------
 
