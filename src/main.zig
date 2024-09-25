@@ -67,6 +67,7 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size: 
 // l: toggle level
 // v: toggle 3d
 // c: toggle camera update
+// r: toggle draw wire
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -93,6 +94,7 @@ pub fn main() anyerror!void {
     var display_lines = true;
     var display_3d_view = true;
     var enable_camera_update = true;
+    var display_3d_wires = false;
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
@@ -171,6 +173,9 @@ pub fn main() anyerror!void {
         if (rl.isKeyPressed(rl.KeyboardKey.key_c)) {
             enable_camera_update = !enable_camera_update;
         }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_r)) {
+            display_3d_wires = !display_3d_wires;
+        }
 
         if (enable_camera_update) {
             camera.update(rl.CameraMode.camera_first_person);
@@ -182,12 +187,17 @@ pub fn main() anyerror!void {
         defer rl.endDrawing();
         rl.clearBackground(rl.Color.black);
 
-        if (display_3d_view) {
+        {
             camera.begin();
             defer camera.end();
-
-            // DRAW THE MESH
-            rl.drawModel(level_model, rl.Vector3.init(0, 0, 0), map_scale, rl.Color.white);
+            if (display_3d_view) {
+                // DRAW THE MESH
+                rl.drawModel(level_model, rl.Vector3.init(0, 0, 0), map_scale, rl.Color.white);
+            }
+            if (display_3d_wires) {
+                // DRAW THE MESH
+                rl.drawModelWires(level_model, rl.Vector3.init(0, 0, 0), map_scale, rl.Color.blue);
+            }
         }
 
         // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
