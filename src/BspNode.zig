@@ -1,6 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("utils.zig");
+const Rectangle = @import("Rectangle.zig");
 
 const Self = @This();
 const Error = error{
@@ -12,7 +13,7 @@ var next_id: u32 = 0;
 first_child: ?*Self,
 second_child: ?*Self,
 
-area: rl.Rectangle,
+area: Rectangle,
 
 up_nodes: std.ArrayList(*Self),
 down_nodes: std.ArrayList(*Self),
@@ -23,7 +24,8 @@ id: u32,
 
 splitted_axis: ?utils.Axis,
 
-pub fn init(area: rl.Rectangle, min_width: f32, min_height: f32, allocator: std.mem.Allocator, rnd: std.rand.Random, max_depth: u32) !?*Self {
+pub fn init(area: Rectangle, min_width: i32, min_height: i32, allocator: std.mem.Allocator, max_depth: u32) !?*Self {
+    const rnd = try getPrng();
     return create_node(area, min_width, min_height, rnd, allocator, max_depth, 0);
 }
 
@@ -41,7 +43,7 @@ pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
     allocator.destroy(self);
 }
 
-fn create_node(area: rl.Rectangle, min_width: f32, min_height: f32, rnd: std.rand.Random, allocator: std.mem.Allocator, max_depth: u32, depth: u32) !?*Self {
+fn create_node(area: Rectangle, min_width: i32, min_height: i32, rnd: std.rand.Random, allocator: std.mem.Allocator, max_depth: u32, depth: u32) !?*Self {
     const split_x_min = min_width;
     const split_x_max = area.width - min_width;
 
@@ -65,25 +67,24 @@ fn create_node(area: rl.Rectangle, min_width: f32, min_height: f32, rnd: std.ran
         null;
 
     if (splitted_axis != null) {
-        var first_child_area: ?rl.Rectangle = null;
-        var second_child_area: ?rl.Rectangle = null;
-        const split_ratio = rnd.float(f32);
+        var first_child_area: Rectangle = undefined;
+        var second_child_area: Rectangle = undefined;
 
         switch (splitted_axis.?) {
             .x => {
-                const split_position = ((split_x_max - split_x_min) * split_ratio) + split_x_min;
-                first_child_area = rl.Rectangle.init(area.x, area.y, split_position, area.height);
-                second_child_area = rl.Rectangle.init(area.x + split_position, area.y, area.width - split_position, area.height);
+                const split_position = rnd.intRangeAtMost(i32, split_x_min, split_x_max);
+                first_child_area = Rectangle.init(area.x, area.y, split_position, area.height);
+                second_child_area = Rectangle.init(area.x + split_position, area.y, area.width - split_position, area.height);
             },
             .y => {
-                const split_position = ((split_y_max - split_y_min) * split_ratio) + split_y_min;
-                first_child_area = rl.Rectangle.init(area.x, area.y, area.width, split_position);
-                second_child_area = rl.Rectangle.init(area.x, area.y + split_position, area.width, area.height - split_position);
+                const split_position = rnd.intRangeAtMost(i32, split_y_min, split_y_max);
+                first_child_area = Rectangle.init(area.x, area.y, area.width, split_position);
+                second_child_area = Rectangle.init(area.x, area.y + split_position, area.width, area.height - split_position);
             },
         }
 
-        first_child = try create_node(first_child_area.?, min_width, min_height, rnd, allocator, max_depth, depth + 1);
-        second_child = try create_node(second_child_area.?, min_width, min_height, rnd, allocator, max_depth, depth + 1);
+        first_child = try create_node(first_child_area, min_width, min_height, rnd, allocator, max_depth, depth + 1);
+        second_child = try create_node(second_child_area, min_width, min_height, rnd, allocator, max_depth, depth + 1);
     }
 
     const id = next_id;
@@ -137,6 +138,10 @@ fn create_node(area: rl.Rectangle, min_width: f32, min_height: f32, rnd: std.ran
     return node;
 }
 
+inline fn scaleByFloat(value: i32, scale: f32) i32 {
+    return @intFromFloat(@as(f32, @floatFromInt(value)) * scale);
+}
+
 fn drawNode(self: Self, colors: []const rl.Color, scale_x: f32, scale_y: f32, current_depth: u32, max_depth: u32) !void {
     if (current_depth > max_depth) {
         return;
@@ -146,22 +151,20 @@ fn drawNode(self: Self, colors: []const rl.Color, scale_x: f32, scale_y: f32, cu
         const first_child_area = self.first_child.?.area;
         switch (axis) {
             .x => {
-                const split_position: i32 = @intFromFloat((first_child_area.x + first_child_area.width) * scale_x);
-                const min: i32 = @intFromFloat(first_child_area.y * scale_y);
-                const max: i32 = @intFromFloat((first_child_area.y + first_child_area.height) * scale_y);
-
+                const split_position: i32 = scaleByFloat(first_child_area.x + first_child_area.width, scale_x);
+                const min: i32 = scaleByFloat(first_child_area.y, scale_y);
+                const max: i32 = scaleByFloat(first_child_area.y + first_child_area.height, scale_y);
                 rl.drawLine(split_position, min, split_position, max, selected_color);
             },
             .y => {
-                const split_position: i32 = @intFromFloat((first_child_area.y + first_child_area.height) * scale_y);
-                const min: i32 = @intFromFloat(first_child_area.x * scale_x);
-                const max: i32 = @intFromFloat((first_child_area.x + first_child_area.width) * scale_x);
-
+                const split_position: i32 = scaleByFloat(first_child_area.y + first_child_area.height, scale_y);
+                const min: i32 = scaleByFloat(first_child_area.x, scale_x);
+                const max: i32 = scaleByFloat(first_child_area.x + first_child_area.width, scale_x);
                 rl.drawLine(min, split_position, max, split_position, selected_color);
             },
         }
     } else {
-        const center = utils.getRectCenter(self.area);
+        const center = self.area.center();
 
         var buf: [10:0]u8 = .{0} ** 10;
         _ = try std.fmt.bufPrint(&buf, "{}", .{self.id});
