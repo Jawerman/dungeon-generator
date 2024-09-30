@@ -138,10 +138,6 @@ fn create_node(area: Rectangle, min_width: i32, min_height: i32, rnd: std.rand.R
     return node;
 }
 
-inline fn scaleByFloat(value: i32, scale: f32) i32 {
-    return @intFromFloat(@as(f32, @floatFromInt(value)) * scale);
-}
-
 fn drawNode(self: Self, colors: []const rl.Color, scale_x: f32, scale_y: f32, current_depth: u32, max_depth: u32) !void {
     if (current_depth > max_depth) {
         return;
@@ -151,15 +147,15 @@ fn drawNode(self: Self, colors: []const rl.Color, scale_x: f32, scale_y: f32, cu
         const first_child_area = self.first_child.?.area;
         switch (axis) {
             .x => {
-                const split_position: i32 = scaleByFloat(first_child_area.x + first_child_area.width, scale_x);
-                const min: i32 = scaleByFloat(first_child_area.y, scale_y);
-                const max: i32 = scaleByFloat(first_child_area.y + first_child_area.height, scale_y);
+                const split_position: i32 = utils.scaleByFloat(first_child_area.x + first_child_area.width, scale_x);
+                const min: i32 = utils.scaleByFloat(first_child_area.y, scale_y);
+                const max: i32 = utils.scaleByFloat(first_child_area.y + first_child_area.height, scale_y);
                 rl.drawLine(split_position, min, split_position, max, selected_color);
             },
             .y => {
-                const split_position: i32 = scaleByFloat(first_child_area.y + first_child_area.height, scale_y);
-                const min: i32 = scaleByFloat(first_child_area.x, scale_x);
-                const max: i32 = scaleByFloat(first_child_area.x + first_child_area.width, scale_x);
+                const split_position: i32 = utils.scaleByFloat(first_child_area.y + first_child_area.height, scale_y);
+                const min: i32 = utils.scaleByFloat(first_child_area.x, scale_x);
+                const max: i32 = utils.scaleByFloat(first_child_area.x + first_child_area.width, scale_x);
                 rl.drawLine(min, split_position, max, split_position, selected_color);
             },
         }
@@ -185,7 +181,6 @@ pub fn getPrng() !std.rand.Random {
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
-        seed = 6553374428587271123;
         std.debug.print("Seed {}", .{seed});
         break :blk seed;
     });

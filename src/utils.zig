@@ -30,3 +30,7 @@ pub fn getRectAxisOverlap(rect1: rl.Rectangle, rect2: rl.Rectangle, axis: Axis) 
     }
     return @min(max2, max1) - @max(min1, min2);
 }
+
+pub inline fn scaleByFloat(value: i32, scale: f32) i32 {
+    return @intFromFloat(@as(f32, @floatFromInt(value)) * scale);
+}

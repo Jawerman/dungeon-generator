@@ -21,7 +21,7 @@ pub fn init(allocator: std.mem.Allocator) Self {
 }
 
 pub fn add_submesh(self: *Self, vertices: []const rl.Vector3, indices: []const u16, texcoords: []const rl.Vector2, normals: []const rl.Vector3) !void {
-    // It's important to add the indices before the vertex since hte indices uses the vertices array lenght
+    // It's important to add the indices before the vertex since the indices uses the vertices array lenght
     // as offset
     try self.add_submesh_indices(indices);
     try self.add_submesh_vertices(vertices);
