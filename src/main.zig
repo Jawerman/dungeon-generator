@@ -6,6 +6,7 @@ const MspBuilder = @import("minimum_spanning_tree_builder.zig");
 const Level = @import("Level.zig");
 const LevelVisualization = @import("LevelVisualization.zig");
 const LeveMesh = @import("LevelMesh.zig");
+const LevelRenderer = @import("LevelRenderer.zig");
 const Rectangle = @import("Rectangle.zig");
 
 const split_colors = [_]rl.Color{
@@ -88,7 +89,6 @@ pub fn main() anyerror!void {
     const minimum_overlap_for_connecting_rooms = 6;
     //
     const level_height = 8;
-    // const tiling_ratio = map_size;
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
     rl.setConfigFlags(rl.ConfigFlags{ .window_resizable = true, .vsync_hint = true });
@@ -99,7 +99,7 @@ pub fn main() anyerror!void {
     var display_graph = false;
     var display_bsp = false;
     var display_map = false;
-    var display_lines = true;
+    var display_lines = false;
     var display_3d_view = true;
     var enable_camera_update = true;
     var display_3d_wires = false;
@@ -107,9 +107,6 @@ pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
     defer arena.deinit();
-
-    // const min_split_width_ratio = 1.0 / 5.0;
-    // const min_split_height_ratio = 1.0 / 5.0;
 
     const node = try BspNode.init(Rectangle.init(0, 0, map_size, map_size), map_size / 4, map_size / 4, allocator, split_colors.len);
     var graph = Graph.init(allocator);
@@ -121,7 +118,6 @@ pub fn main() anyerror!void {
 
     const visualization = try LevelVisualization.init(level, level_height, @divTrunc(level_height, 2), allocator);
     // _ = visualization;
-    // try visualization.buildFromLevel(level, level_height);
 
     // Checked texture
     const checked_image = rl.genImageChecked(2, 2, 1, 1, rl.Color.dark_gray, rl.Color.dark_brown);
@@ -133,29 +129,37 @@ pub fn main() anyerror!void {
     defer rl.unloadTexture(texture);
 
     // ATLAS
-    const atlas_image = rl.loadImage("./assets/atlas.png");
+    // const atlas_image = rl.loadImage("./assets/atlas.png");
+    const atlas_image = rl.loadImage("./assets/MOutside_A4.png");
     defer rl.unloadImage(atlas_image);
 
-    const num_vertical_tiles = 8.0;
-    const num_horizontal_tiles = 11.0;
-    const atlas_tile_size = rl.Vector2.init(@as(f32, @floatFromInt(atlas_image.width)) / num_horizontal_tiles, @as(f32, @floatFromInt(atlas_image.height)) / num_vertical_tiles);
+    // const num_vertical_tiles = 8.0;
+    // const num_horizontal_tiles = 11.0;
+    // const atlas_tile_size = rl.Vector2.init(@as(f32, @floatFromInt(atlas_image.width)) / num_horizontal_tiles, @as(f32, @floatFromInt(atlas_image.height)) / num_vertical_tiles);
+    const atlas_tile_size = rl.Vector2.init(48.0, 48.0);
 
-    const tile_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(2 * atlas_tile_size.x, 5 * atlas_tile_size.y, atlas_tile_size.x, atlas_tile_size.y));
-    const tile_texture = rl.loadTextureFromImage(tile_image);
-    defer rl.unloadTexture(tile_texture);
-    rl.setTextureFilter(tile_texture, rl.TextureFilter.texture_filter_anisotropic_16x);
+    // const wall_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(10.0 * atlas_tile_size.x, 6.0 * atlas_tile_size.y, atlas_tile_size.x, atlas_tile_size.y));
+    // const wall_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(0.0, 0.0, 48.0, 48.0));
+    const wall_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(0.0 * atlas_tile_size.x, 0.0 * atlas_tile_size.y, atlas_tile_size.x, atlas_tile_size.y));
+    var wall_texture = rl.loadTextureFromImage(wall_image);
+    defer rl.unloadTexture(wall_texture);
+    rl.genTextureMipmaps(&wall_texture);
+    rl.setTextureFilter(wall_texture, rl.TextureFilter.texture_filter_point);
+
+    const floor_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(0 * atlas_tile_size.x, 14.0 * atlas_tile_size.y, atlas_tile_size.x, atlas_tile_size.y));
+    var floor_texture = rl.loadTextureFromImage(floor_image);
+    defer rl.unloadTexture(floor_texture);
+    rl.genTextureMipmaps(&floor_texture);
+    rl.setTextureFilter(floor_texture, rl.TextureFilter.texture_filter_point);
+
+    const ceil_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(13.0 * atlas_tile_size.x, 5.0 * atlas_tile_size.y, atlas_tile_size.x, atlas_tile_size.y));
+    var ceil_texture = rl.loadTextureFromImage(ceil_image);
+    defer rl.unloadTexture(ceil_texture);
+    rl.genTextureMipmaps(&ceil_texture);
+    rl.setTextureFilter(ceil_texture, rl.TextureFilter.texture_filter_point);
 
     // Generate MESH
-    // var level_mesh = try LeveMesh.init(visualization, tiling_ratio, allocator);
-    var level_mesh = try LeveMesh.buildMesh(visualization, allocator);
-    rl.uploadMesh(&level_mesh, false);
-    // unloadModel takes care of unloading its mesh
-    // defer rl.unloadMesh(level_mesh.mesh);
-
-    var level_model = rl.loadModelFromMesh(level_mesh);
-    defer rl.unloadModel(level_model);
-
-    level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = tile_texture;
+    var level_renderer = try LevelRenderer.init(visualization, wall_texture, floor_texture, ceil_texture, allocator);
 
     var camera = rl.Camera{
         .position = rl.Vector3.init(map_size / 2, 3.0, map_size / 2.0),
@@ -208,18 +212,18 @@ pub fn main() anyerror!void {
         rl.beginDrawing();
         defer rl.endDrawing();
         rl.clearBackground(rl.Color.black);
-        drawGrid(screenWidth, screenHeight, screen_width_map_ratio, screen_height_map_ratio, rl.Color.init(255, 255, 255, 20));
+        // drawGrid(screenWidth, screenHeight, screen_width_map_ratio, screen_height_map_ratio, rl.Color.init(255, 255, 255, 20));
 
         {
             camera.begin();
             defer camera.end();
             if (display_3d_view) {
                 // DRAW THE MESH
-                rl.drawModel(level_model, rl.Vector3.init(0, 0, 0), 1.0, rl.Color.white);
+                level_renderer.draw(rl.Vector3.init(0, 0, 0), 1.0, rl.Color.white);
             }
             if (display_3d_wires) {
                 // DRAW THE MESH
-                rl.drawModelWires(level_model, rl.Vector3.init(0, 0, 0), 1.0, rl.Color.blue);
+                level_renderer.drawWires(rl.Vector3.init(0, 0, 0), 1.0, rl.Color.white);
             }
         }
         //

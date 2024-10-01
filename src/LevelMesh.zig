@@ -16,6 +16,39 @@ pub fn buildMesh(level: LevelVisualization, allocator: std.mem.Allocator) !rl.Me
     return mesh_builder.buildMesh();
 }
 
+pub fn buildWallsMesh(level: LevelVisualization, allocator: std.mem.Allocator) !rl.Mesh {
+    var mesh_builder = MeshBuilder.init(allocator);
+    for (level.sectors.items, 0..) |sector, i| {
+        std.debug.print("\nRender sector {}: {any}", .{ i, sector.area });
+        try addSectorLines(&mesh_builder, sector);
+    }
+    for (level.sectors.items, 0..) |sector, i| {
+        std.debug.print("\nRender sector {}: {any}", .{ i, sector.area });
+        if (sector.sector_type == Sector.SectorType.door) {
+            try addSectorCeil(&mesh_builder, sector.area, sector.ceil_height);
+        }
+    }
+    return mesh_builder.buildMesh();
+}
+
+pub fn buildFloorsMesh(level: LevelVisualization, allocator: std.mem.Allocator) !rl.Mesh {
+    var mesh_builder = MeshBuilder.init(allocator);
+    for (level.sectors.items) |sector| {
+        try addSectorFloor(&mesh_builder, sector.area, sector.floor_height);
+    }
+    return mesh_builder.buildMesh();
+}
+
+pub fn buildCeilMesh(level: LevelVisualization, allocator: std.mem.Allocator) !rl.Mesh {
+    var mesh_builder = MeshBuilder.init(allocator);
+    for (level.sectors.items) |sector| {
+        if (sector.sector_type == Sector.SectorType.room) {
+            try addSectorCeil(&mesh_builder, sector.area, sector.ceil_height);
+        }
+    }
+    return mesh_builder.buildMesh();
+}
+
 fn addSector(mesh_builder: *MeshBuilder, sector: Sector) !void {
     try addSectorLines(mesh_builder, sector);
     try addSectorFloor(mesh_builder, sector.area, sector.floor_height);
