@@ -3,6 +3,7 @@ const BspNode = @import("BspNode.zig");
 const rl = @import("raylib");
 const Graph = @import("Graph.zig");
 const utils = @import("utils.zig");
+const Rectangle = @import("Rectangle.zig");
 
 const AreaConnectionCost = struct {
     area_index: usize,
@@ -72,9 +73,9 @@ pub fn buildMSTGraph(graph: Graph, allocator: std.mem.Allocator) !Graph {
 // PERF: Transform "Graph.Edge" into an struct to store the edge cost
 // so it can be pre-calculated
 
-fn calculateEdgeCost(edge: Graph.Edge, areas: std.ArrayList(rl.Rectangle)) f32 {
-    const first_node_center = utils.getRectCenter(areas.items[edge[0]]);
-    const second_node_center = utils.getRectCenter(areas.items[edge[1]]);
+fn calculateEdgeCost(edge: Graph.Edge, areas: std.ArrayList(Rectangle)) f32 {
+    const first_node_center = areas.items[edge[0]].center();
+    const second_node_center = areas.items[edge[1]].center();
 
     const x_distance = first_node_center.x - second_node_center.x;
     const y_distance = first_node_center.y - second_node_center.y;

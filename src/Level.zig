@@ -2,15 +2,17 @@ const std = @import("std");
 const utils = @import("utils.zig");
 const rl = @import("raylib");
 const Graph = @import("Graph.zig");
+const Rectangle = @import("Rectangle.zig");
 
 const Self = @This();
 
-pub const Sector = struct {
-    area: rl.Rectangle,
+const Orientation = enum {
+    horizontal,
+    vertical,
 };
 
 pub const Room = struct {
-    area: rl.Rectangle,
+    area: Rectangle,
 
     up_doors: std.ArrayList(usize),
     down_doors: std.ArrayList(usize),
@@ -18,20 +20,25 @@ pub const Room = struct {
     right_doors: std.ArrayList(usize),
 };
 
+pub const Door = struct {
+    area: Rectangle,
+    orientation: Orientation,
+};
+
 rooms: std.ArrayList(Room),
-doors: std.ArrayList(rl.Rectangle),
+doors: std.ArrayList(Door),
 
 pub fn init(allocator: std.mem.Allocator) Self {
     return .{
         .rooms = std.ArrayList(Room).init(allocator),
-        .doors = std.ArrayList(rl.Rectangle).init(allocator),
+        .doors = std.ArrayList(Door).init(allocator),
     };
 }
 
-pub fn build(self: *Self, graph: Graph, padding: f32, door_size: f32, allocator: std.mem.Allocator) !void {
+pub fn build(self: *Self, graph: Graph, padding: i32, door_size: i32, allocator: std.mem.Allocator) !void {
     for (graph.areas.items) |area| {
         try self.rooms.append(.{
-            .area = rl.Rectangle.init(area.x + padding, area.y + padding, area.width - (2 * padding), area.height - (2 * padding)),
+            .area = Rectangle.init(area.x + padding, area.y + padding, area.width - padding, area.height - padding),
             .up_doors = std.ArrayList(usize).init(allocator),
             .down_doors = std.ArrayList(usize).init(allocator),
             .left_doors = std.ArrayList(usize).init(allocator),
@@ -51,7 +58,7 @@ pub fn build(self: *Self, graph: Graph, padding: f32, door_size: f32, allocator:
 
 fn print_debug_info(self: Self) void {
     for (self.doors.items, 0..) |door, i| {
-        std.debug.print("\nDOOR {}: x:{}, y:{}, width: {}, height: {}", .{ i, door.x, door.y, door.width, door.height });
+        std.debug.print("\nDOOR {}: x:{}, y:{}, width: {}, height: {}", .{ i, door.area.x, door.area.y, door.area.width, door.area.height });
     }
     for (self.rooms.items, 0..) |room, i| {
         std.debug.print("\nROOM {}: x:{}, y:{}, width: {}, height: {}", .{ i, room.area.x, room.area.y, room.area.width, room.area.height });
@@ -74,7 +81,7 @@ fn print_debug_info(self: Self) void {
     }
 }
 
-fn addDoor(self: *Self, edge: Graph.Edge, door_size: f32) !void {
+fn addDoor(self: *Self, edge: Graph.Edge, door_size: i32) !void {
     var room1 = &self.rooms.items[edge[0]];
     var room2 = &self.rooms.items[edge[1]];
 
@@ -101,10 +108,10 @@ fn addDoor(self: *Self, edge: Graph.Edge, door_size: f32) !void {
 
     if (x_gap > 0) {
         const x = min_max_x;
-        const y = ((max_min_y + min_max_y) / 2) - (door_size / 2);
+        const y = @divTrunc((max_min_y + min_max_y), 2) - @divTrunc(door_size, 2);
         const width = x_gap;
         const height = door_size;
-        const door = rl.Rectangle.init(x, y, width, height);
+        const area = Rectangle.init(x, y, width, height);
 
         if (min_x_1 < x) {
             try room1.right_doors.append(door_index);
@@ -113,13 +120,16 @@ fn addDoor(self: *Self, edge: Graph.Edge, door_size: f32) !void {
             try room1.left_doors.append(door_index);
             try room2.right_doors.append(door_index);
         }
-        try self.doors.append(door);
+        try self.doors.append(Door{
+            .area = area,
+            .orientation = Orientation.horizontal,
+        });
     } else {
         const y = min_max_y;
-        const x = ((max_min_x + min_max_x) / 2) - (door_size / 2);
+        const x = @divTrunc((max_min_x + min_max_x), 2) - @divTrunc(door_size, 2);
         const width = door_size;
         const height = y_gap;
-        const door = rl.Rectangle.init(x, y, width, height);
+        const area = Rectangle.init(x, y, width, height);
 
         if (min_y_1 < y) {
             try room1.down_doors.append(door_index);
@@ -128,31 +138,48 @@ fn addDoor(self: *Self, edge: Graph.Edge, door_size: f32) !void {
             try room1.up_doors.append(door_index);
             try room2.down_doors.append(door_index);
         }
-        try self.doors.append(door);
+        try self.doors.append(Door{
+            .area = area,
+            .orientation = Orientation.vertical,
+        });
     }
 }
 
-fn sortRoomDoors(room: *Room, doors: []rl.Rectangle) void {
-    std.mem.sort(usize, room.up_doors.items, doors, cmpDoorsX);
-    std.mem.sort(usize, room.down_doors.items, doors, cmpDoorsX);
-    std.mem.sort(usize, room.left_doors.items, doors, cmpDoorsY);
-    std.mem.sort(usize, room.right_doors.items, doors, cmpDoorsY);
+fn sortRoomDoors(room: *Room, doors: []Door) void {
+    std.mem.sort(usize, room.up_doors.items, doors, cmpDoorsAsc);
+    std.mem.sort(usize, room.left_doors.items, doors, cmpDoorsAsc);
+    std.mem.sort(usize, room.down_doors.items, doors, cmpDoorsDesc);
+    std.mem.sort(usize, room.right_doors.items, doors, cmpDoorsDesc);
 }
 
 pub fn draw(self: Self, scale_x: f32, scale_y: f32, room_color: rl.Color, door_color: rl.Color) void {
     for (self.rooms.items) |room| {
         const area = room.area;
-        rl.drawRectangle(@intFromFloat(area.x * scale_x), @intFromFloat(area.y * scale_y), @intFromFloat(area.width * scale_x), @intFromFloat(area.height * scale_y), room_color);
+
+        rl.drawRectangle(utils.scaleByFloat(area.x, scale_x), utils.scaleByFloat(area.y, scale_y), utils.scaleByFloat(area.width, scale_x), utils.scaleByFloat(area.height, scale_y), room_color);
     }
     for (self.doors.items) |door| {
-        rl.drawRectangle(@intFromFloat(door.x * scale_x), @intFromFloat(door.y * scale_y), @intFromFloat(door.width * scale_x), @intFromFloat(door.height * scale_y), door_color);
+        const area = door.area;
+        rl.drawRectangle(utils.scaleByFloat(area.x, scale_x), utils.scaleByFloat(area.y, scale_y), utils.scaleByFloat(area.width, scale_x), utils.scaleByFloat(area.height, scale_y), door_color);
     }
 }
 
-fn cmpDoorsX(context: []rl.Rectangle, a: usize, b: usize) bool {
-    return context[a].x < context[b].x;
+fn cmpDoorsAsc(context: []Door, a: usize, b: usize) bool {
+    const doorA = context[a];
+    const doorB = context[b];
+
+    return switch (doorA.orientation) {
+        .horizontal => doorA.area.x < doorB.area.x,
+        .vertical => doorA.area.y < doorB.area.y,
+    };
 }
 
-fn cmpDoorsY(context: []rl.Rectangle, a: usize, b: usize) bool {
-    return context[a].y < context[b].y;
+fn cmpDoorsDesc(context: []Door, a: usize, b: usize) bool {
+    const doorA = context[a];
+    const doorB = context[b];
+
+    return switch (doorA.orientation) {
+        .horizontal => doorA.area.x > doorB.area.x,
+        .vertical => doorA.area.y > doorB.area.y,
+    };
 }

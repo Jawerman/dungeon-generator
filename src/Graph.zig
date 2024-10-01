@@ -2,29 +2,30 @@ const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("utils.zig");
 const BspNode = @import("BspNode.zig");
+const Rectangle = @import("Rectangle.zig");
 
 const Self = @This();
 
 pub const Edge = [2]usize;
 
 edges: std.ArrayList(Edge),
-areas: std.ArrayList(rl.Rectangle),
+areas: std.ArrayList(Rectangle),
 
 pub fn init(allocator: std.mem.Allocator) Self {
     return .{
         .edges = std.ArrayList(Edge).init(allocator),
-        .areas = std.ArrayList(rl.Rectangle).init(allocator),
+        .areas = std.ArrayList(Rectangle).init(allocator),
     };
 }
 
 // NOTE: maybe buildFromBsp should handle its own allocator for temporal allocation, in this case the lookup hashmap
-pub fn buildFromBsp(self: *Self, root: *BspNode, minimum_overlap: f32, allocator: std.mem.Allocator) !void {
+pub fn buildFromBsp(self: *Self, root: *BspNode, minimum_overlap: i32, allocator: std.mem.Allocator) !void {
     var area_index_lookup_map = std.AutoHashMap(u32, usize).init(allocator);
     try self.collect_leaf_nodes(root, &area_index_lookup_map);
     try self.generate_edges(root, area_index_lookup_map, minimum_overlap);
 }
 
-pub fn generate_edges(self: *Self, root: *BspNode, area_index_lookup_map: std.AutoHashMap(u32, usize), minimum_overlap: f32) !void {
+pub fn generate_edges(self: *Self, root: *BspNode, area_index_lookup_map: std.AutoHashMap(u32, usize), minimum_overlap: i32) !void {
     if (root.splitted_axis) |axis| {
         if (root.first_child) |child| {
             try self.generate_edges(child, area_index_lookup_map, minimum_overlap);
@@ -36,7 +37,7 @@ pub fn generate_edges(self: *Self, root: *BspNode, area_index_lookup_map: std.Au
             .x => {
                 for (root.first_child.?.right_nodes.items) |left_node| {
                     for (root.second_child.?.left_nodes.items) |right_node| {
-                        const overlapping = utils.getRectAxisOverlap(left_node.area, right_node.area, utils.Axis.y);
+                        const overlapping = left_node.area.getRectAxisOverlap(right_node.area, utils.Axis.y);
                         if (overlapping >= minimum_overlap) {
                             try self.edges.append(.{ area_index_lookup_map.get(left_node.id).?, area_index_lookup_map.get(right_node.id).? });
                         }
@@ -46,7 +47,7 @@ pub fn generate_edges(self: *Self, root: *BspNode, area_index_lookup_map: std.Au
             .y => {
                 for (root.first_child.?.down_nodes.items) |up_node| {
                     for (root.second_child.?.up_nodes.items) |down_node| {
-                        const overlapping = utils.getRectAxisOverlap(up_node.area, down_node.area, utils.Axis.x);
+                        const overlapping = up_node.area.getRectAxisOverlap(down_node.area, utils.Axis.x);
                         if (overlapping >= minimum_overlap) {
                             try self.edges.append(.{ area_index_lookup_map.get(up_node.id).?, area_index_lookup_map.get(down_node.id).? });
                         }
@@ -79,8 +80,8 @@ pub fn draw(self: Self, scale_x: f32, scale_y: f32, color: rl.Color) void {
 }
 
 fn drawEdge(self: Self, edge: Edge, scale_x: f32, scale_y: f32, color: rl.Color) void {
-    const first_node_center = utils.getRectCenter(self.areas.items[edge[0]]);
-    const second_node_center = utils.getRectCenter(self.areas.items[edge[1]]);
+    const first_node_center = self.areas.items[edge[0]].center();
+    const second_node_center = self.areas.items[edge[1]].center();
 
     rl.drawLine(@intFromFloat(first_node_center.x * scale_x), @intFromFloat(first_node_center.y * scale_y), @intFromFloat(second_node_center.x * scale_x), @intFromFloat(second_node_center.y * scale_y), color);
 }
