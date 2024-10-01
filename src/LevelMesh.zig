@@ -5,13 +5,6 @@ const MeshBuilder = @import("Mesh.zig");
 const Sector = @import("Sector.zig");
 const Rectangle = @import("Rectangle.zig");
 
-const Self = @This();
-
-mesh: rl.Mesh,
-mesh_builder: MeshBuilder,
-quad_count: usize = 0,
-max_quads: usize,
-
 pub fn buildMesh(level: LevelVisualization, allocator: std.mem.Allocator) !rl.Mesh {
     var mesh_builder = MeshBuilder.init(allocator);
 

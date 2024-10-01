@@ -78,7 +78,7 @@ pub fn main() anyerror!void {
     // const map_scale = 100.0;
     const map_size = 128;
     const screenWidth = 1280;
-    const screenHeight = 1280;
+    const screenHeight = 720;
 
     const screen_width_map_ratio: f32 = @as(f32, @floatFromInt(screenWidth)) / @as(f32, @floatFromInt(map_size));
     const screen_height_map_ratio: f32 = @as(f32, @floatFromInt(screenHeight)) / @as(f32, @floatFromInt(map_size));
@@ -132,6 +132,19 @@ pub fn main() anyerror!void {
     const texture = rl.loadTexture("./assets/cubicmap_atlas.png");
     defer rl.unloadTexture(texture);
 
+    // ATLAS
+    const atlas_image = rl.loadImage("./assets/atlas.png");
+    defer rl.unloadImage(atlas_image);
+
+    const num_vertical_tiles = 8.0;
+    const num_horizontal_tiles = 11.0;
+    const atlas_tile_size = rl.Vector2.init(@as(f32, @floatFromInt(atlas_image.width)) / num_horizontal_tiles, @as(f32, @floatFromInt(atlas_image.height)) / num_vertical_tiles);
+
+    const tile_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(2 * atlas_tile_size.x, 5 * atlas_tile_size.y, atlas_tile_size.x, atlas_tile_size.y));
+    const tile_texture = rl.loadTextureFromImage(tile_image);
+    defer rl.unloadTexture(tile_texture);
+    rl.setTextureFilter(tile_texture, rl.TextureFilter.texture_filter_anisotropic_16x);
+
     // Generate MESH
     // var level_mesh = try LeveMesh.init(visualization, tiling_ratio, allocator);
     var level_mesh = try LeveMesh.buildMesh(visualization, allocator);
@@ -142,7 +155,7 @@ pub fn main() anyerror!void {
     var level_model = rl.loadModelFromMesh(level_mesh);
     defer rl.unloadModel(level_model);
 
-    level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = texture;
+    level_model.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = tile_texture;
 
     var camera = rl.Camera{
         .position = rl.Vector3.init(map_size / 2, 3.0, map_size / 2.0),
