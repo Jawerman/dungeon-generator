@@ -11,10 +11,6 @@ const Orientation = enum {
     vertical,
 };
 
-// pub const Sector = struct {
-//     area: Rectangle,
-// };
-
 pub const Room = struct {
     area: Rectangle,
 
@@ -42,7 +38,7 @@ pub fn init(allocator: std.mem.Allocator) Self {
 pub fn build(self: *Self, graph: Graph, padding: i32, door_size: i32, allocator: std.mem.Allocator) !void {
     for (graph.areas.items) |area| {
         try self.rooms.append(.{
-            .area = Rectangle.init(area.x + padding, area.y + padding, area.width - (2 * padding), area.height - (2 * padding)),
+            .area = Rectangle.init(area.x + padding, area.y + padding, area.width - padding, area.height - padding),
             .up_doors = std.ArrayList(usize).init(allocator),
             .down_doors = std.ArrayList(usize).init(allocator),
             .left_doors = std.ArrayList(usize).init(allocator),
