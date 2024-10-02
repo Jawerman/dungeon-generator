@@ -31,6 +31,8 @@ void main()
     vec3 lightDot = vec3(0.0);
     vec3 normal = normalize(fragNormal);
     // vec3 viewD = normalize(viewPos - fragPosition);
+    vec3 fog = vec3(1.0, 0.9, 0.5);
+    float lightDistance = distance(fragPosition, flashLight.position);
 
     vec3 light = normalize(flashLight.position - fragPosition);
 
@@ -38,8 +40,9 @@ void main()
     lightDot += (flashLight.color.rgb * NdotL);
 
     finalColor = texelColor * (colDiffuse * vec4(lightDot, 1.0));
-    finalColor = vec4(finalColor.rgb / distance(fragPosition, flashLight.position), 1.0);
-    // finalColor += texelColor * (ambient / 10.0) * colDiffuse;
+    finalColor = vec4(finalColor.rgb / lightDistance, 1.0);
+    finalColor = finalColor + vec4((fog / 800.0) * lightDistance, 1.0);
+    // finalColor += finalColor * (ambient / 20.0) * colDiffuse;
 
     // Gamma correction
     finalColor = pow(finalColor, vec4(1.0 / 2.2));
