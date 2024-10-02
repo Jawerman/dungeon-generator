@@ -9,7 +9,7 @@ floorsModel: rl.Model,
 wallsModel: rl.Model,
 ceilsModel: rl.Model,
 
-pub fn init(level: LevelVisualization, wall_texture: rl.Texture, floor_texture: rl.Texture, ceil_texture: rl.Texture, allocator: std.mem.Allocator) !Self {
+pub fn init(level: LevelVisualization, wall_texture: rl.Texture, floor_texture: rl.Texture, ceil_texture: rl.Texture, shader: rl.Shader, allocator: std.mem.Allocator) !Self {
     var floorsMesh = try LevelMeshBuilder.buildFloorsMesh(level, allocator);
     var ceilMesh = try LevelMeshBuilder.buildCeilMesh(level, allocator);
     var wallsMesh = try LevelMeshBuilder.buildWallsMesh(level, allocator);
@@ -27,6 +27,10 @@ pub fn init(level: LevelVisualization, wall_texture: rl.Texture, floor_texture: 
     result.floorsModel.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = floor_texture;
     result.wallsModel.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = wall_texture;
     result.ceilsModel.materials[0].maps[@intFromEnum(rl.MATERIAL_MAP_DIFFUSE)].texture = ceil_texture;
+
+    result.floorsModel.materials[0].shader = shader;
+    result.wallsModel.materials[0].shader = shader;
+    result.ceilsModel.materials[0].shader = shader;
 
     return result;
 }

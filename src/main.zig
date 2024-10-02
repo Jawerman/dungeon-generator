@@ -8,6 +8,7 @@ const LevelVisualization = @import("LevelVisualization.zig");
 const LeveMesh = @import("LevelMesh.zig");
 const LevelRenderer = @import("LevelRenderer.zig");
 const Rectangle = @import("Rectangle.zig");
+const FlashLight = @import("FlashLight.zig");
 
 const split_colors = [_]rl.Color{
     rl.Color.red,
@@ -120,26 +121,20 @@ pub fn main() anyerror!void {
     // _ = visualization;
 
     // Checked texture
-    const checked_image = rl.genImageChecked(2, 2, 1, 1, rl.Color.dark_gray, rl.Color.dark_brown);
-    const checked_texture = rl.loadTextureFromImage(checked_image);
-    rl.unloadImage(checked_image);
-    defer rl.unloadTexture(checked_texture);
+    // const checked_image = rl.genImageChecked(2, 2, 1, 1, rl.Color.dark_gray, rl.Color.dark_brown);
+    // const checked_texture = rl.loadTextureFromImage(checked_image);
+    // rl.unloadImage(checked_image);
+    // defer rl.unloadTexture(checked_texture);
 
-    const texture = rl.loadTexture("./assets/cubicmap_atlas.png");
-    defer rl.unloadTexture(texture);
+    // const texture = rl.loadTexture("./assets/cubicmap_atlas.png");
+    // defer rl.unloadTexture(texture);
 
     // ATLAS
-    // const atlas_image = rl.loadImage("./assets/atlas.png");
     const atlas_image = rl.loadImage("./assets/MOutside_A4.png");
     defer rl.unloadImage(atlas_image);
 
-    // const num_vertical_tiles = 8.0;
-    // const num_horizontal_tiles = 11.0;
-    // const atlas_tile_size = rl.Vector2.init(@as(f32, @floatFromInt(atlas_image.width)) / num_horizontal_tiles, @as(f32, @floatFromInt(atlas_image.height)) / num_vertical_tiles);
     const atlas_tile_size = rl.Vector2.init(48.0, 48.0);
 
-    // const wall_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(10.0 * atlas_tile_size.x, 6.0 * atlas_tile_size.y, atlas_tile_size.x, atlas_tile_size.y));
-    // const wall_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(0.0, 0.0, 48.0, 48.0));
     const wall_image = rl.imageFromImage(atlas_image, rl.Rectangle.init(0.0 * atlas_tile_size.x, 0.0 * atlas_tile_size.y, atlas_tile_size.x, atlas_tile_size.y));
     var wall_texture = rl.loadTextureFromImage(wall_image);
     defer rl.unloadTexture(wall_texture);
@@ -158,9 +153,6 @@ pub fn main() anyerror!void {
     rl.genTextureMipmaps(&ceil_texture);
     rl.setTextureFilter(ceil_texture, rl.TextureFilter.texture_filter_point);
 
-    // Generate MESH
-    var level_renderer = try LevelRenderer.init(visualization, wall_texture, floor_texture, ceil_texture, allocator);
-
     var camera = rl.Camera{
         .position = rl.Vector3.init(map_size / 2, 3.0, map_size / 2.0),
         .target = rl.Vector3.init(map_size / 2.0, 3.0, 0.0),
@@ -168,6 +160,22 @@ pub fn main() anyerror!void {
         .fovy = 60.0,
         .projection = rl.CameraProjection.camera_perspective,
     };
+
+    // SHADER
+
+    const shader = rl.loadShader("./assets/shaders/light.vs.glsl", "./assets/shaders/light.fs.glsl");
+    defer rl.unloadShader(shader);
+    shader.locs[@intFromEnum(rl.ShaderLocationIndex.shader_loc_vector_view)] = rl.getShaderLocation(shader, "viewPos");
+
+    const ambientLoc = rl.getShaderLocation(shader, "ambient");
+    const ambientLight = rl.Vector4.init(1.0, 1.0, 1.0, 0.1);
+    rl.setShaderValue(shader, ambientLoc, &ambientLight, rl.ShaderUniformDataType.shader_uniform_vec4);
+
+    var cameraPos = [_]f32{ camera.position.x, camera.position.y, camera.position.z };
+    rl.setShaderValue(shader, shader.locs[@intFromEnum(rl.ShaderLocationIndex.shader_loc_vector_view)], &cameraPos, rl.ShaderUniformDataType.shader_uniform_vec4);
+
+    var flash_light = FlashLight.init(camera.position, camera.target.subtract(camera.position).normalize(), rl.Color.init(255, 255, 255, 100), shader);
+    var level_renderer = try LevelRenderer.init(visualization, wall_texture, floor_texture, ceil_texture, shader, allocator);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -205,6 +213,14 @@ pub fn main() anyerror!void {
 
         if (enable_camera_update) {
             camera.update(rl.CameraMode.camera_first_person);
+
+            flash_light.position = camera.position;
+            flash_light.direction = camera.target.subtract(camera.position).normalize();
+            flash_light.update(shader);
+
+            cameraPos = [_]f32{ camera.position.x, camera.position.y, camera.position.z };
+
+            rl.setShaderValue(shader, shader.locs[@intFromEnum(rl.ShaderLocationIndex.shader_loc_vector_view)], &cameraPos, rl.ShaderUniformDataType.shader_uniform_vec4);
         }
         // Draw
         //----------------------------------------------------------------------------------
