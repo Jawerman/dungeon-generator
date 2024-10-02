@@ -13,12 +13,6 @@ uniform vec4 colDiffuse;
 // Output fragment color
 out vec4 finalColor;
 
-// NOTE: Add here your custom variables
-
-#define     MAX_LIGHTS              4
-#define     LIGHT_DIRECTIONAL       0
-#define     LIGHT_POINT             1
-
 struct Light {
     vec3 position;
     vec3 direction;
@@ -36,16 +30,16 @@ void main()
     vec4 texelColor = texture(texture0, fragTexCoord);
     vec3 lightDot = vec3(0.0);
     vec3 normal = normalize(fragNormal);
-    vec3 viewD = normalize(viewPos - fragPosition);
-    float lightDistance = (flashLight.position - fragPosition).length;
+    // vec3 viewD = normalize(viewPos - fragPosition);
 
     vec3 light = normalize(flashLight.position - fragPosition);
 
     float NdotL = max(dot(normal, light), 0.0);
-    lightDot += flashLight.color.rgb * NdotL;
+    lightDot += (flashLight.color.rgb * NdotL);
 
     finalColor = texelColor * (colDiffuse * vec4(lightDot, 1.0));
-    finalColor += texelColor * (ambient / 10.0) * colDiffuse;
+    finalColor = vec4(finalColor.rgb / distance(fragPosition, flashLight.position), 1.0);
+    // finalColor += texelColor * (ambient / 10.0) * colDiffuse;
 
     // Gamma correction
     finalColor = pow(finalColor, vec4(1.0 / 2.2));
