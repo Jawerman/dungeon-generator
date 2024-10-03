@@ -109,7 +109,7 @@ pub fn main() anyerror!void {
     const allocator = arena.allocator();
     defer arena.deinit();
 
-    const node = try BspNode.init(Rectangle.init(0, 0, map_size, map_size), map_size / 4, map_size / 4, allocator, split_colors.len);
+    const node = try BspNode.init(Rectangle.init(0, 0, map_size, map_size), map_size / 8, map_size / 8, allocator, split_colors.len);
     var graph = Graph.init(allocator);
     try graph.buildFromBsp(node.?, minimum_overlap_for_connecting_rooms, allocator);
     //

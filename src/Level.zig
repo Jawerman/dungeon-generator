@@ -122,7 +122,7 @@ fn addDoor(self: *Self, edge: Graph.Edge, door_size: i32) !void {
         }
         try self.doors.append(Door{
             .area = area,
-            .orientation = Orientation.horizontal,
+            .orientation = Orientation.vertical,
         });
     } else {
         const y = min_max_y;
@@ -140,16 +140,16 @@ fn addDoor(self: *Self, edge: Graph.Edge, door_size: i32) !void {
         }
         try self.doors.append(Door{
             .area = area,
-            .orientation = Orientation.vertical,
+            .orientation = Orientation.horizontal,
         });
     }
 }
 
 fn sortRoomDoors(room: *Room, doors: []Door) void {
     std.mem.sort(usize, room.up_doors.items, doors, cmpDoorsAsc);
-    std.mem.sort(usize, room.left_doors.items, doors, cmpDoorsAsc);
+    std.mem.sort(usize, room.right_doors.items, doors, cmpDoorsAsc);
     std.mem.sort(usize, room.down_doors.items, doors, cmpDoorsDesc);
-    std.mem.sort(usize, room.right_doors.items, doors, cmpDoorsDesc);
+    std.mem.sort(usize, room.left_doors.items, doors, cmpDoorsDesc);
 }
 
 pub fn draw(self: Self, scale_x: f32, scale_y: f32, room_color: rl.Color, door_color: rl.Color) void {

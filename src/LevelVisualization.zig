@@ -42,8 +42,8 @@ fn createSectorFromDoor(self: *Self, door: Level.Door, door_height: i32, allocat
         .y = door.area.y,
         .min_height = 0,
         .max_height = switch (door.orientation) {
-            .horizontal => door_height,
-            .vertical => 0,
+            .horizontal => 0,
+            .vertical => door_height,
         },
     });
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
@@ -53,8 +53,8 @@ fn createSectorFromDoor(self: *Self, door: Level.Door, door_height: i32, allocat
         .y = door.area.y,
         .min_height = 0,
         .max_height = switch (door.orientation) {
-            .horizontal => 0,
-            .vertical => door_height,
+            .horizontal => door_height,
+            .vertical => 0,
         },
     });
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
@@ -64,8 +64,8 @@ fn createSectorFromDoor(self: *Self, door: Level.Door, door_height: i32, allocat
         .y = door.area.y + door.area.height,
         .min_height = 0,
         .max_height = switch (door.orientation) {
-            .horizontal => door_height,
-            .vertical => 0,
+            .horizontal => 0,
+            .vertical => door_height,
         },
     });
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
@@ -75,8 +75,8 @@ fn createSectorFromDoor(self: *Self, door: Level.Door, door_height: i32, allocat
         .y = door.area.y + door.area.height,
         .min_height = 0,
         .max_height = switch (door.orientation) {
-            .horizontal => 0,
-            .vertical => door_height,
+            .horizontal => door_height,
+            .vertical => 0,
         },
     });
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
