@@ -92,7 +92,8 @@ fn addLine(mesh_builder: *MeshBuilder, start_point: Sector.Point, end_point: Sec
     const first_side = vertices[1].subtract(vertices[0]);
     const second_side = vertices[2].subtract(vertices[1]);
 
-    const normals = [_]rl.Vector3{first_side.crossProduct(second_side).normalize()} ** 3;
+    const normals = [_]rl.Vector3{first_side.crossProduct(second_side).normalize()} ** 4;
+
     const line_vector = rl.Vector2.init(end_x, end_y).subtract(rl.Vector2.init(start_x, start_y));
     const line_width = line_vector.length();
     const line_height = max_height - min_height;
@@ -127,7 +128,7 @@ fn addSectorFloor(mesh_builder: *MeshBuilder, area: Rectangle, floor_height: i32
     const indices: [6]u16 = .{ 0, 1, 2, 0, 2, 3 };
     const first_side = vertices[1].subtract(vertices[0]);
     const second_side = vertices[2].subtract(vertices[1]);
-    const normals = [_]rl.Vector3{first_side.crossProduct(second_side).normalize()} ** 3;
+    const normals = [_]rl.Vector3{first_side.crossProduct(second_side).normalize()} ** 4;
 
     const texcoords: [4]rl.Vector2 = .{
         rl.Vector2.init(0, 0),
@@ -159,7 +160,7 @@ fn addSectorCeil(mesh_builder: *MeshBuilder, area: Rectangle, ceil_height: i32) 
     const indices: [6]u16 = .{ 0, 1, 2, 0, 2, 3 };
     const first_side = vertices[1].subtract(vertices[0]);
     const second_side = vertices[2].subtract(vertices[1]);
-    const normals = [_]rl.Vector3{first_side.crossProduct(second_side).normalize()} ** 3;
+    const normals = [_]rl.Vector3{first_side.crossProduct(second_side).normalize()} ** 4;
 
     const texcoords: [4]rl.Vector2 = .{
         rl.Vector2.init(0, 0),
