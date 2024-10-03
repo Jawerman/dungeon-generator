@@ -28,16 +28,13 @@ pub const Door = struct {
 rooms: std.ArrayList(Room),
 doors: std.ArrayList(Door),
 
-pub fn init(allocator: std.mem.Allocator) Self {
-    return .{
+pub fn init(graph: Graph, padding: i32, door_size: i32, allocator: std.mem.Allocator) !Self {
+    var result = Self{
         .rooms = std.ArrayList(Room).init(allocator),
         .doors = std.ArrayList(Door).init(allocator),
     };
-}
-
-pub fn build(self: *Self, graph: Graph, padding: i32, door_size: i32, allocator: std.mem.Allocator) !void {
     for (graph.areas.items) |area| {
-        try self.rooms.append(.{
+        try result.rooms.append(.{
             .area = Rectangle.init(area.x + padding, area.y + padding, area.width - padding, area.height - padding),
             .up_doors = std.ArrayList(usize).init(allocator),
             .down_doors = std.ArrayList(usize).init(allocator),
@@ -47,13 +44,14 @@ pub fn build(self: *Self, graph: Graph, padding: i32, door_size: i32, allocator:
     }
 
     for (graph.edges.items) |edge| {
-        try self.addDoor(edge, door_size);
+        try result.addDoor(edge, door_size);
     }
 
-    for (self.rooms.items) |*room| {
-        sortRoomDoors(room, self.doors.items);
+    for (result.rooms.items) |*room| {
+        sortRoomDoors(room, result.doors.items);
     }
-    self.print_debug_info();
+    result.print_debug_info();
+    return result;
 }
 
 fn print_debug_info(self: Self) void {

@@ -77,7 +77,6 @@ fn drawGrid(screen_width: comptime_int, screen_height: comptime_int, grid_size_x
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
-    // const map_scale = 100.0;
     const map_size = 128;
     const screenWidth = 1280;
     const screenHeight = 720;
@@ -112,22 +111,11 @@ pub fn main() anyerror!void {
     const node = try BspNode.init(Rectangle.init(0, 0, map_size, map_size), map_size / 8, map_size / 8, allocator, split_colors.len);
     var graph = Graph.init(allocator);
     try graph.buildFromBsp(node.?, minimum_overlap_for_connecting_rooms, allocator);
-    //
+
     const minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
-    var level = Level.init(allocator);
-    try level.build(minimum_graph, padding, door_size, allocator);
+    const level = try Level.init(minimum_graph, padding, door_size, allocator);
 
     const visualization = try LevelVisualization.init(level, level_height, @divTrunc(level_height, 2), allocator);
-    // _ = visualization;
-
-    // Checked texture
-    // const checked_image = rl.genImageChecked(2, 2, 1, 1, rl.Color.dark_gray, rl.Color.dark_brown);
-    // const checked_texture = rl.loadTextureFromImage(checked_image);
-    // rl.unloadImage(checked_image);
-    // defer rl.unloadTexture(checked_texture);
-
-    // const texture = rl.loadTexture("./assets/cubicmap_atlas.png");
-    // defer rl.unloadTexture(texture);
 
     // ATLAS
     const atlas_image = rl.loadImage("./assets/MOutside_A4.png");
