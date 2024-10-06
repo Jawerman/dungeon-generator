@@ -36,50 +36,51 @@ fn addSectors(self: *Self, level: LevelDefinition, level_height: i32, door_heigh
 
 fn createSectorFromDoor(self: *Self, door: LevelDefinition.Door, door_height: i32, allocator: std.mem.Allocator) !void {
     var new_sector = Sector.init(door.area, Sector.SectorType.door, 0, door_height, allocator);
+    const first_point_index = new_sector.points.items.len;
 
-    try new_sector.points.append(.{
+    const horizontal_heigth = switch (door.orientation) {
+        .horizontal => 0,
+        .vertical => door_height,
+    };
+    const vertical_height = switch (door.orientation) {
+        .horizontal => door_height,
+        .vertical => 0,
+    };
+
+    try addPointToSector(&new_sector, .{
         .x = door.area.x,
         .y = door.area.y,
-        .min_height = 0,
-        .max_height = switch (door.orientation) {
-            .horizontal => 0,
-            .vertical => door_height,
-        },
-    });
+    }, 0, 0);
+
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
 
-    try new_sector.points.append(.{
+    try addPointToSector(&new_sector, .{
         .x = door.area.x + door.area.width,
         .y = door.area.y,
-        .min_height = 0,
-        .max_height = switch (door.orientation) {
-            .horizontal => door_height,
-            .vertical => 0,
-        },
-    });
+    }, 0, horizontal_heigth);
+
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
 
-    try new_sector.points.append(.{
+    try addPointToSector(&new_sector, .{
         .x = door.area.x + door.area.width,
         .y = door.area.y + door.area.height,
-        .min_height = 0,
-        .max_height = switch (door.orientation) {
-            .horizontal => 0,
-            .vertical => door_height,
-        },
-    });
+    }, 0, vertical_height);
+
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
 
-    try new_sector.points.append(.{
+    try addPointToSector(&new_sector, .{
         .x = door.area.x,
         .y = door.area.y + door.area.height,
-        .min_height = 0,
-        .max_height = switch (door.orientation) {
-            .horizontal => door_height,
-            .vertical => 0,
-        },
-    });
+    }, 0, horizontal_heigth);
+
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
+
+    const last_point_index = new_sector.points.items.len - 1;
+    try new_sector.lines.append(.{
+        .min_height = 0,
+        .max_height = vertical_height,
+        .points = .{ last_point_index, first_point_index },
+    });
 
     try self.sectors.append(new_sector);
 }
@@ -87,137 +88,137 @@ fn createSectorFromDoor(self: *Self, door: LevelDefinition.Door, door_height: i3
 fn createSectorFromRoom(self: *Self, room: LevelDefinition.Room, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32, allocator: std.mem.Allocator) !void {
     var new_sector = Sector.init(room.area, Sector.SectorType.room, 0, level_height, allocator);
 
-    try new_sector.points.append(.{
+    const first_point_index = new_sector.points.items.len;
+
+    try addPointToSector(&new_sector, .{
         .x = room.area.x,
         .y = room.area.y,
-        .min_height = 0,
-        .max_height = level_height,
-    });
+    }, 0, level_height);
+
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
 
-    try addUpLinesPoints(&new_sector.points, room.up_doors.items, level_doors, level_height, door_height);
+    try addUpLinesPoints(&new_sector, room.up_doors.items, level_doors, level_height, door_height);
 
-    try new_sector.points.append(.{
+    try addPointToSector(&new_sector, .{
         .x = room.area.x + room.area.width,
         .y = room.area.y,
-        .min_height = 0,
-        .max_height = level_height,
-    });
+    }, 0, level_height);
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
 
-    try addRightLinesPoints(&new_sector.points, room.right_doors.items, level_doors, level_height, door_height);
+    try addRightLinesPoints(&new_sector, room.right_doors.items, level_doors, level_height, door_height);
 
-    try new_sector.points.append(.{
+    try addPointToSector(&new_sector, .{
         .x = room.area.x + room.area.width,
         .y = room.area.y + room.area.height,
-        .min_height = 0,
-        .max_height = level_height,
-    });
+    }, 0, level_height);
 
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
-    try addDownLinesPoints(&new_sector.points, room.down_doors.items, level_doors, level_height, door_height);
+    try addDownLinesPoints(&new_sector, room.down_doors.items, level_doors, level_height, door_height);
 
-    try new_sector.points.append(.{
+    try addPointToSector(&new_sector, .{
         .x = room.area.x,
         .y = room.area.y + room.area.height,
-        .min_height = 0,
-        .max_height = level_height,
-    });
+    }, 0, level_height);
     std.debug.print("\n\tAdded point {}", .{new_sector.points.getLast()});
 
-    try addLeftLinesPoints(&new_sector.points, room.left_doors.items, level_doors, level_height, door_height);
+    try addLeftLinesPoints(&new_sector, room.left_doors.items, level_doors, level_height, door_height);
+
+    const last_point_index = new_sector.points.items.len - 1;
+    try new_sector.lines.append(.{
+        .min_height = 0,
+        .max_height = level_height,
+        .points = .{ last_point_index, first_point_index },
+    });
 
     try self.sectors.append(new_sector);
 }
 
-fn addUpLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
-    const position_y = points.getLast().y;
+fn addPointToSector(sector: *Sector, point: Sector.Point, min_height: i32, max_height: i32) !void {
+    const new_point_index = sector.points.items.len;
 
+    try sector.points.append(point);
+    if (new_point_index > 0) {
+        try sector.lines.append(.{
+            .min_height = min_height,
+            .max_height = max_height,
+            .points = .{ new_point_index - 1, new_point_index },
+        });
+    }
+}
+
+fn addUpLinesPoints(sector: *Sector, door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
+    const position_y = sector.points.getLast().y;
     for (door_indexes) |door_index| {
         const current_door_area = level_doors[door_index].area;
-        try points.append(.{
+        try addPointToSector(sector, .{
             .x = current_door_area.x,
             .y = position_y,
-            .min_height = door_height,
-            .max_height = level_height,
-        });
-        std.debug.print("\n\tAdded point {}", .{points.getLast()});
+        }, 0, level_height);
 
-        try points.append(.{
+        std.debug.print("\n\tAdded point {}", .{sector.points.getLast()});
+
+        try addPointToSector(sector, .{
             .x = current_door_area.x + current_door_area.width,
             .y = position_y,
-            .min_height = 0,
-            .max_height = level_height,
-        });
-        std.debug.print("\n\tAdded point {}", .{points.getLast()});
+        }, door_height, level_height);
+
+        std.debug.print("\n\tAdded point {}", .{sector.points.getLast()});
     }
 }
 
-fn addRightLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
-    const position_x = points.getLast().x;
+fn addRightLinesPoints(sector: *Sector, door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
+    const position_x = sector.points.getLast().x;
 
     for (door_indexes) |door_index| {
         const current_door_area = level_doors[door_index].area;
-        try points.append(.{
+        try addPointToSector(sector, .{
             .x = position_x,
             .y = current_door_area.y,
-            .min_height = door_height,
-            .max_height = level_height,
-        });
-        std.debug.print("\n\tAdded point {}", .{points.getLast()});
+        }, 0, level_height);
+        std.debug.print("\n\tAdded point {}", .{sector.points.getLast()});
 
-        try points.append(.{
+        try addPointToSector(sector, .{
             .x = position_x,
             .y = current_door_area.y + current_door_area.height,
-            .min_height = 0,
-            .max_height = level_height,
-        });
-        std.debug.print("\n\tAdded point {}", .{points.getLast()});
+        }, door_height, level_height);
+        std.debug.print("\n\tAdded point {}", .{sector.points.getLast()});
     }
 }
 
-fn addDownLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
-    const position_y = points.getLast().y;
+fn addDownLinesPoints(sector: *Sector, door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
+    const position_y = sector.points.getLast().y;
     for (door_indexes) |door_index| {
         const current_door_area = level_doors[door_index].area;
-        try points.append(.{
+        try addPointToSector(sector, .{
             .x = current_door_area.x + current_door_area.width,
             .y = position_y,
-            .min_height = door_height,
-            .max_height = level_height,
-        });
-        std.debug.print("\n\tAdded point {}", .{points.getLast()});
+        }, 0, level_height);
+        std.debug.print("\n\tAdded point {}", .{sector.points.getLast()});
 
-        try points.append(.{
+        try addPointToSector(sector, .{
             .x = current_door_area.x,
             .y = position_y,
-            .min_height = 0,
-            .max_height = level_height,
-        });
-        std.debug.print("\n\tAdded point {}", .{points.getLast()});
+        }, door_height, level_height);
+        std.debug.print("\n\tAdded point {}", .{sector.points.getLast()});
     }
 }
 
-fn addLeftLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
-    const position_x = points.getLast().x;
+fn addLeftLinesPoints(sector: *Sector, door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
+    const position_x = sector.points.getLast().x;
 
     for (door_indexes) |door_index| {
         const current_door_area = level_doors[door_index].area;
-        try points.append(.{
+        try addPointToSector(sector, .{
             .x = position_x,
             .y = current_door_area.y + current_door_area.height,
-            .min_height = door_height,
-            .max_height = level_height,
-        });
-        std.debug.print("\n\tAdded point {}", .{points.getLast()});
+        }, 0, level_height);
+        std.debug.print("\n\tAdded point {}", .{sector.points.getLast()});
 
-        try points.append(.{
+        try addPointToSector(sector, .{
             .x = position_x,
             .y = current_door_area.y,
-            .min_height = 0,
-            .max_height = level_height,
-        });
-        std.debug.print("\n\tAdded point {}", .{points.getLast()});
+        }, door_height, level_height);
+        std.debug.print("\n\tAdded point {}", .{sector.points.getLast()});
     }
 }
 
@@ -229,19 +230,12 @@ pub fn draw(self: Self, scale_x: f32, scale_y: f32, room_color: rl.Color, door_c
         };
 
         const sector_points = sector.points.items;
-        var current_point = sector_points[0];
+        const sector_lines = sector.lines.items;
 
-        for (sector_points[1..]) |point| {
-            defer current_point = point;
-            if (current_point.min_height == current_point.max_height) {
-                continue;
-            }
-            rl.drawLine(util.scaleByFloat(current_point.x, scale_x), util.scaleByFloat(current_point.y, scale_y), util.scaleByFloat(point.x, scale_x), util.scaleByFloat(point.y, scale_y), color);
-        }
-
-        if (current_point.min_height != current_point.max_height) {
-            const first_point = sector_points[0];
-            rl.drawLine(util.scaleByFloat(current_point.x, scale_x), util.scaleByFloat(current_point.y, scale_y), util.scaleByFloat(first_point.x, scale_x), util.scaleByFloat(first_point.y, scale_y), color);
+        for (sector_lines) |line| {
+            const first_point = sector_points[line.points[0]];
+            const second_point = sector_points[line.points[1]];
+            rl.drawLine(util.scaleByFloat(first_point.x, scale_x), util.scaleByFloat(first_point.y, scale_y), util.scaleByFloat(second_point.x, scale_x), util.scaleByFloat(second_point.y, scale_y), color);
         }
     }
 }

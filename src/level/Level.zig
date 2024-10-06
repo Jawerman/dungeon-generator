@@ -43,8 +43,8 @@ pub fn init(config: LevelGenerationConfig, allocator: std.mem.Allocator) !Self {
     try graph.buildFromBsp(node.?, config.minimum_overlap_for_room_connection, allocator);
 
     const minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
-    const level = try LevelDefinition.init(minimum_graph, config.room_padding, config.doors_width, allocator);
 
+    const level = try LevelDefinition.init(minimum_graph, config.room_padding, config.doors_width, allocator);
     const visualization = try LevelVisualization.init(level, config.level_height, config.doors_height, allocator);
 
     return .{
