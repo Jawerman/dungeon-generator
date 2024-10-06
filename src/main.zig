@@ -205,7 +205,7 @@ pub fn main() anyerror!void {
         }
 
         if (enable_camera_update) {
-            player.update(new_level.level_definition);
+            player.update(new_level);
             // camera.update(rl.CameraMode.camera_first_person);
 
             camera.target = player.target;
