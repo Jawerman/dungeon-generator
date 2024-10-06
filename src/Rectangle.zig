@@ -17,7 +17,7 @@ pub fn init(x: i32, y: i32, width: i32, height: i32) Self {
     };
 }
 
-pub fn center(self: @This()) rl.Vector2 {
+pub fn center(self: Self) rl.Vector2 {
     const half_width: f32 = @as(f32, @floatFromInt(self.width)) / 2.0;
     const half_height: f32 = @as(f32, @floatFromInt(self.height)) / 2.0;
 
@@ -29,6 +29,26 @@ pub fn center(self: @This()) rl.Vector2 {
         .y = center_y,
     };
 }
+
+pub fn contains(self: Self, point: rl.Vector2) bool {
+    const self_x: f32 = @floatFromInt(self.x);
+    const self_y: f32 = @floatFromInt(self.y);
+    const self_width: f32 = @floatFromInt(self.width);
+    const self_height: f32 = @floatFromInt(self.height);
+
+    return point.x > self_x and
+        point.x < self_x + self_width and
+        point.y > self_y and
+        point.y < self_y + self_height;
+}
+
+pub fn isEqual(self: Self, other: Self) bool {
+    return self.x == other.x and
+        self.y == other.y and
+        self.width == other.width and
+        self.height == other.height;
+}
+
 pub fn getRectAxisOverlap(self: Self, other: Self, axis: Axis) i32 {
     var min1: i32 = undefined;
     var max1: i32 = undefined;

@@ -9,6 +9,7 @@ const LeveMesh = @import("LevelMesh.zig");
 const LevelRenderer = @import("LevelRenderer.zig");
 const Rectangle = @import("Rectangle.zig");
 const FlashLight = @import("FlashLight.zig");
+const Player = @import("Player.zig");
 
 const split_colors = [_]rl.Color{
     rl.Color.red,
@@ -170,6 +171,8 @@ pub fn main() anyerror!void {
 
     var seconds_elapsed: f32 = 0;
 
+    var player = Player.init(1.0, 0.09, rl.Vector2.init(0.003, 0.003), rl.Vector2.init(0.03, -0.03), camera.position, camera.target);
+
     // Main game loop
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         defer seconds_elapsed += 1.0 / 60.0;
@@ -200,7 +203,11 @@ pub fn main() anyerror!void {
         }
 
         if (enable_camera_update) {
-            camera.update(rl.CameraMode.camera_first_person);
+            player.update(level);
+            // camera.update(rl.CameraMode.camera_first_person);
+
+            camera.target = player.target;
+            camera.position = player.position;
 
             flash_light.position = camera.position;
             flash_light.direction = camera.target.subtract(camera.position).normalize();
