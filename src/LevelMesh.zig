@@ -1,8 +1,8 @@
 const rl = @import("raylib");
-const LevelVisualization = @import("LevelVisualization.zig");
+const LevelVisualization = @import("./level/LevelVisualization.zig");
 const std = @import("std");
 const MeshBuilder = @import("Mesh.zig");
-const Sector = @import("Sector.zig");
+const Sector = @import("./level/Sector.zig");
 const Rectangle = @import("Rectangle.zig");
 
 pub fn buildMesh(level: LevelVisualization, allocator: std.mem.Allocator) !rl.Mesh {

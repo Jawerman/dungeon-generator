@@ -1,6 +1,6 @@
 const rl = @import("raylib");
 const std = @import("std");
-const LevelVisualization = @import("LevelVisualization.zig");
+const LevelVisualization = @import("./level/LevelVisualization.zig");
 const LevelMeshBuilder = @import("LevelMesh.zig");
 
 const Self = @This();

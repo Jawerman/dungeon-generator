@@ -1,8 +1,8 @@
 const std = @import("std");
 const rl = @import("raylib");
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 const BspNode = @import("BspNode.zig");
-const Rectangle = @import("Rectangle.zig");
+const Rectangle = @import("../Rectangle.zig");
 
 const Self = @This();
 

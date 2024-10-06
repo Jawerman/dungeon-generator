@@ -1,15 +1,15 @@
 const rl = @import("raylib");
 const std = @import("std");
-const util = @import("utils.zig");
-const Level = @import("Level.zig");
+const util = @import("../utils.zig");
+const LevelDefinition = @import("LevelDefinition.zig");
 const Sector = @import("Sector.zig");
-const Rectangle = @import("Rectangle.zig");
+const Rectangle = @import("../Rectangle.zig");
 
 const Self = @This();
 
 sectors: std.ArrayList(Sector),
 
-pub fn init(level: Level, level_height: i32, door_height: i32, allocator: std.mem.Allocator) !Self {
+pub fn init(level: LevelDefinition, level_height: i32, door_height: i32, allocator: std.mem.Allocator) !Self {
     var result = Self{
         .sectors = std.ArrayList(Sector).init(allocator),
     };
@@ -17,11 +17,11 @@ pub fn init(level: Level, level_height: i32, door_height: i32, allocator: std.me
     return result;
 }
 
-fn buildFromLevel(self: *Self, level: Level, level_height: i32, door_height: i32, allocator: std.mem.Allocator) !void {
+fn buildFromLevel(self: *Self, level: LevelDefinition, level_height: i32, door_height: i32, allocator: std.mem.Allocator) !void {
     try self.addSectors(level, level_height, door_height, allocator);
 }
 
-fn addSectors(self: *Self, level: Level, level_height: i32, door_height: i32, allocator: std.mem.Allocator) !void {
+fn addSectors(self: *Self, level: LevelDefinition, level_height: i32, door_height: i32, allocator: std.mem.Allocator) !void {
     try self.sectors.ensureTotalCapacity(level.rooms.items.len);
 
     for (level.rooms.items) |room| {
@@ -34,7 +34,7 @@ fn addSectors(self: *Self, level: Level, level_height: i32, door_height: i32, al
     }
 }
 
-fn createSectorFromDoor(self: *Self, door: Level.Door, door_height: i32, allocator: std.mem.Allocator) !void {
+fn createSectorFromDoor(self: *Self, door: LevelDefinition.Door, door_height: i32, allocator: std.mem.Allocator) !void {
     var new_sector = Sector.init(door.area, Sector.SectorType.door, 0, door_height, allocator);
 
     try new_sector.points.append(.{
@@ -84,7 +84,7 @@ fn createSectorFromDoor(self: *Self, door: Level.Door, door_height: i32, allocat
     try self.sectors.append(new_sector);
 }
 
-fn createSectorFromRoom(self: *Self, room: Level.Room, level_doors: []Level.Door, level_height: i32, door_height: i32, allocator: std.mem.Allocator) !void {
+fn createSectorFromRoom(self: *Self, room: LevelDefinition.Room, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32, allocator: std.mem.Allocator) !void {
     var new_sector = Sector.init(room.area, Sector.SectorType.room, 0, level_height, allocator);
 
     try new_sector.points.append(.{
@@ -130,7 +130,7 @@ fn createSectorFromRoom(self: *Self, room: Level.Room, level_doors: []Level.Door
     try self.sectors.append(new_sector);
 }
 
-fn addUpLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []Level.Door, level_height: i32, door_height: i32) !void {
+fn addUpLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
     const position_y = points.getLast().y;
 
     for (door_indexes) |door_index| {
@@ -153,7 +153,7 @@ fn addUpLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize,
     }
 }
 
-fn addRightLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []Level.Door, level_height: i32, door_height: i32) !void {
+fn addRightLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
     const position_x = points.getLast().x;
 
     for (door_indexes) |door_index| {
@@ -176,7 +176,7 @@ fn addRightLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usi
     }
 }
 
-fn addDownLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []Level.Door, level_height: i32, door_height: i32) !void {
+fn addDownLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
     const position_y = points.getLast().y;
     for (door_indexes) |door_index| {
         const current_door_area = level_doors[door_index].area;
@@ -198,7 +198,7 @@ fn addDownLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usiz
     }
 }
 
-fn addLeftLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []Level.Door, level_height: i32, door_height: i32) !void {
+fn addLeftLinesPoints(points: *std.ArrayList(Sector.Point), door_indexes: []usize, level_doors: []LevelDefinition.Door, level_height: i32, door_height: i32) !void {
     const position_x = points.getLast().x;
 
     for (door_indexes) |door_index| {

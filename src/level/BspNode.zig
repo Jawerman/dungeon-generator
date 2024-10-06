@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
-const utils = @import("utils.zig");
-const Rectangle = @import("Rectangle.zig");
+const utils = @import("../utils.zig");
+const Rectangle = @import("../Rectangle.zig");
 
 const Self = @This();
 const Error = error{

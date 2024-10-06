@@ -1,5 +1,5 @@
 const rl = @import("raylib");
-const Level = @import("Level.zig");
+const Level = @import("./level/LevelDefinition.zig");
 const Self = @This();
 const Rectangle = @import("Rectangle.zig");
 
