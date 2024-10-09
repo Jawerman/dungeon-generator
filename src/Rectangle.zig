@@ -49,6 +49,20 @@ pub fn isEqual(self: Self, other: Self) bool {
         self.height == other.height;
 }
 
+pub fn getOverlap(self: Self, other: Self) Self {
+    const max_min_x = @max(self.x, other.x);
+    const max_min_y = @max(self.y, other.y);
+    const min_max_x = @min(self.x + self.width, other.x + other.width);
+    const min_max_y = @min(self.y + self.height, other.y + other.height);
+
+    return Self{
+        .x = max_min_x,
+        .y = max_min_y,
+        .width = max_min_x - min_max_x,
+        .height = max_min_y - min_max_y,
+    };
+}
+
 pub fn getRectAxisOverlap(self: Self, other: Self, axis: Axis) i32 {
     var min1: i32 = undefined;
     var max1: i32 = undefined;

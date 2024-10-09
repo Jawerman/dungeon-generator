@@ -76,8 +76,8 @@ pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
     const map_size = 128;
-    const screenWidth = 1280;
-    const screenHeight = 720;
+    const screenWidth = 1920;
+    const screenHeight = 1080;
 
     const screen_width_map_ratio: f32 = @as(f32, @floatFromInt(screenWidth)) / @as(f32, @floatFromInt(map_size));
     const screen_height_map_ratio: f32 = @as(f32, @floatFromInt(screenHeight)) / @as(f32, @floatFromInt(map_size));
@@ -87,7 +87,7 @@ pub fn main() anyerror!void {
     const door_size = 4;
     const padding = 1;
     const minimum_overlap_for_connecting_rooms = 6;
-    //
+
     const level_height = 8;
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);

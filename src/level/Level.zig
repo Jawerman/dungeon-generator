@@ -1,11 +1,14 @@
 const rl = @import("raylib");
 const std = @import("std");
-const BspNode = @import("./BspNode.zig");
+// const BspNode = @import("./BspNode.zig");
+const BspTree = @import("./BspTree.zig");
 const Graph = @import("./Graph.zig");
 const MspBuilder = @import("./minimum_spanning_tree_builder.zig");
 const Rectangle = @import("../Rectangle.zig");
 const LevelDefinition = @import("./LevelDefinition.zig");
 const LevelVisualization = @import("./LevelVisualization.zig");
+
+const GraphFromBsp = @import("./build_graph_from_bsp.zig");
 
 const Self = @This();
 
@@ -31,16 +34,20 @@ const LevelGenerationConfig = struct {
     doors_height: i32,
 };
 
-bsp: ?*BspNode,
+// bsp: ?*BspNode,
+bspTree: BspTree,
 graph: Graph,
 minimum_spanning_tree: Graph,
 level_definition: LevelDefinition,
 level_visualization: LevelVisualization,
 
 pub fn init(config: LevelGenerationConfig, allocator: std.mem.Allocator) !Self {
-    const node = try BspNode.init(config.size, config.min_room_width, config.min_room_height, allocator, config.max_recursion_level);
+    // const node = try BspNode.init(config.size, config.min_room_width, config.min_room_height, allocator, config.max_recursion_level);
+    // const node = try BspNode.init(config.size, config.min_room_width, config.min_room_height, allocator, config.max_recursion_level);
+    const tree = try BspTree.init(config.size, config.min_room_width, config.min_room_height, allocator, config.max_recursion_level);
     var graph = Graph.init(allocator);
-    try graph.buildFromBsp(node.?, config.minimum_overlap_for_room_connection, allocator);
+    try GraphFromBsp.buildGraphFromBSP(&graph, tree, config.minimum_overlap_for_room_connection, allocator);
+    // try graph.buildFromBsp(node.?, config.minimum_overlap_for_room_connection, allocator);
 
     const minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
 
@@ -48,7 +55,7 @@ pub fn init(config: LevelGenerationConfig, allocator: std.mem.Allocator) !Self {
     const visualization = try LevelVisualization.init(level, config.level_height, config.doors_height, allocator);
 
     return .{
-        .bsp = node,
+        .bspTree = tree,
         .graph = graph,
         .minimum_spanning_tree = minimum_graph,
         .level_definition = level,
@@ -57,7 +64,7 @@ pub fn init(config: LevelGenerationConfig, allocator: std.mem.Allocator) !Self {
 }
 
 pub fn drawBsp(self: Self, draw_region: rl.Rectangle, colors: []const rl.Color) !void {
-    try self.bsp.?.draw(colors, draw_region.width, draw_region.height, @intCast(colors.len));
+    try self.bspTree.draw(colors, draw_region.width, draw_region.height);
 }
 
 pub fn drawGraph(self: Self, draw_region: rl.Rectangle, color: rl.Color) void {
