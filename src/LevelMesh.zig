@@ -1,8 +1,8 @@
 const rl = @import("raylib");
-const LevelVisualization = @import("LevelVisualization.zig");
+const LevelVisualization = @import("./level/LevelVisualization.zig");
 const std = @import("std");
 const MeshBuilder = @import("Mesh.zig");
-const Sector = @import("Sector.zig");
+const Sector = @import("./level/Sector.zig");
 const Rectangle = @import("Rectangle.zig");
 
 pub fn buildMesh(level: LevelVisualization, allocator: std.mem.Allocator) !rl.Mesh {
@@ -57,29 +57,23 @@ fn addSector(mesh_builder: *MeshBuilder, sector: Sector) !void {
 
 fn addSectorLines(mesh_builder: *MeshBuilder, sector: Sector) !void {
     const sector_points = sector.points.items;
-    var current_point = sector_points[0];
-    for (sector_points[1..]) |point| {
-        defer current_point = point;
-
-        std.debug.print("\n\tPoint x: {}, y: {}, min: {}, max: {}", .{ current_point.x, current_point.y, current_point.min_height, current_point.max_height });
-        std.debug.print("\n\tPoint x: {}, y: {}, min: {}, max: {}", .{ point.x, point.y, point.min_height, point.max_height });
-        std.debug.print("\n", .{});
-
-        try addLine(mesh_builder, current_point, point);
+    const sector_lines = sector.lines.items;
+    // var current_point = sector_points[0];
+    for (sector_lines) |line| {
+        const first_point = sector_points[line.points[0]];
+        const second_point = sector_points[line.points[1]];
+        std.debug.print("\nLine (x: {}, y: {}) - (x: {}, y: {}) - min: {}, max: {}", .{ first_point.x, first_point.y, second_point.x, second_point.y, line.min_height, line.max_height });
+        try addLine(mesh_builder, first_point, second_point, line.min_height, line.max_height);
     }
-    std.debug.print("\n\tPoint x: {}, y: {}, min: {}, max: {}", .{ current_point.x, current_point.y, current_point.min_height, current_point.max_height });
-    std.debug.print("\n\tPoint x: {}, y: {}, min: {}, max: {}", .{ sector_points[0].x, sector_points[0].y, sector_points[0].min_height, sector_points[0].max_height });
-    std.debug.print("\n", .{});
-    try addLine(mesh_builder, current_point, sector_points[0]);
 }
 
-fn addLine(mesh_builder: *MeshBuilder, start_point: Sector.Point, end_point: Sector.Point) !void {
+fn addLine(mesh_builder: *MeshBuilder, start_point: Sector.Point, end_point: Sector.Point, line_min_height: i32, line_max_height: i32) !void {
     const start_x: f32 = @floatFromInt(start_point.x);
     const start_y: f32 = @floatFromInt(start_point.y);
     const end_x: f32 = @floatFromInt(end_point.x);
     const end_y: f32 = @floatFromInt(end_point.y);
-    const min_height: f32 = @floatFromInt(start_point.min_height);
-    const max_height: f32 = @floatFromInt(start_point.max_height);
+    const min_height: f32 = @floatFromInt(line_min_height);
+    const max_height: f32 = @floatFromInt(line_max_height);
 
     const vertices = [4]rl.Vector3{
         rl.Vector3.init(start_x, min_height, start_y),

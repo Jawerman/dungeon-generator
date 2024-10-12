@@ -1,15 +1,12 @@
 const std = @import("std");
 const rl = @import("raylib");
-const BspNode = @import("BspNode.zig");
-const Graph = @import("Graph.zig");
-const MspBuilder = @import("minimum_spanning_tree_builder.zig");
-const Level = @import("Level.zig");
-const LevelVisualization = @import("LevelVisualization.zig");
 const LeveMesh = @import("LevelMesh.zig");
 const LevelRenderer = @import("LevelRenderer.zig");
 const Rectangle = @import("Rectangle.zig");
 const FlashLight = @import("FlashLight.zig");
 const Player = @import("Player.zig");
+
+const LevelGenerator = @import("./level/Level.zig");
 
 const split_colors = [_]rl.Color{
     rl.Color.red,
@@ -79,16 +76,18 @@ pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
     const map_size = 128;
-    const screenWidth = 1280;
-    const screenHeight = 720;
+    const screenWidth = 1920;
+    const screenHeight = 1080;
 
     const screen_width_map_ratio: f32 = @as(f32, @floatFromInt(screenWidth)) / @as(f32, @floatFromInt(map_size));
     const screen_height_map_ratio: f32 = @as(f32, @floatFromInt(screenHeight)) / @as(f32, @floatFromInt(map_size));
 
+    const draw_region = rl.Rectangle.init(0.0, 0.0, screen_width_map_ratio, screen_height_map_ratio);
+
     const door_size = 4;
     const padding = 1;
     const minimum_overlap_for_connecting_rooms = 6;
-    //
+
     const level_height = 8;
 
     rl.setTraceLogLevel(rl.TraceLogLevel.log_error);
@@ -109,14 +108,17 @@ pub fn main() anyerror!void {
     const allocator = arena.allocator();
     defer arena.deinit();
 
-    const node = try BspNode.init(Rectangle.init(0, 0, map_size, map_size), map_size / 8, map_size / 8, allocator, split_colors.len);
-    var graph = Graph.init(allocator);
-    try graph.buildFromBsp(node.?, minimum_overlap_for_connecting_rooms, allocator);
-
-    const minimum_graph = try MspBuilder.buildMSTGraph(graph, allocator);
-    const level = try Level.init(minimum_graph, padding, door_size, allocator);
-
-    const visualization = try LevelVisualization.init(level, level_height, @divTrunc(level_height, 2), allocator);
+    const new_level = try LevelGenerator.init(.{
+        .size = Rectangle.init(0, 0, map_size, map_size),
+        .min_room_width = map_size / 8,
+        .min_room_height = map_size / 8,
+        .max_recursion_level = split_colors.len,
+        .minimum_overlap_for_room_connection = minimum_overlap_for_connecting_rooms,
+        .room_padding = padding,
+        .doors_width = door_size,
+        .level_height = level_height,
+        .doors_height = @divTrunc(level_height, 2),
+    }, allocator);
 
     // ATLAS
     const atlas_image = rl.loadImage("./assets/MOutside_A4.png");
@@ -164,7 +166,7 @@ pub fn main() anyerror!void {
     rl.setShaderValue(shader, shader.locs[@intFromEnum(rl.ShaderLocationIndex.shader_loc_vector_view)], &cameraPos, rl.ShaderUniformDataType.shader_uniform_vec4);
 
     var flash_light = FlashLight.init(camera.position, camera.target.subtract(camera.position).normalize(), rl.Color.init(255, 255, 255, 100), shader);
-    var level_renderer = try LevelRenderer.init(visualization, wall_texture, floor_texture, ceil_texture, shader, allocator);
+    var level_renderer = try LevelRenderer.init(new_level.level_visualization, wall_texture, floor_texture, ceil_texture, shader, allocator);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -203,7 +205,7 @@ pub fn main() anyerror!void {
         }
 
         if (enable_camera_update) {
-            player.update(level);
+            player.update(new_level);
             // camera.update(rl.CameraMode.camera_first_person);
 
             camera.target = player.target;
@@ -241,23 +243,24 @@ pub fn main() anyerror!void {
         // // const depth: u32 = @intFromFloat(@round(seconds_elapsed / depth_increase_interval));
         //
         if (display_bsp) {
-            try node.?.draw(&split_colors, screen_width_map_ratio, screen_height_map_ratio, split_colors.len);
+            try new_level.drawBsp(draw_region, &split_colors);
         }
 
         if (display_graph) {
-            graph.draw(screen_width_map_ratio, screen_height_map_ratio, rl.Color.init(255, 255, 255, 40));
+            new_level.drawGraph(draw_region, rl.Color.init(255, 255, 255, 40));
         }
 
         if (display_mst) {
-            minimum_graph.draw(screen_width_map_ratio, screen_height_map_ratio, rl.Color.init(255, 255, 255, 150));
+            new_level.drawMinimumSpanningTree(draw_region, rl.Color.init(255, 255, 255, 150));
         }
 
         if (display_map) {
-            level.draw(screen_width_map_ratio, screen_height_map_ratio, rl.Color.init(255, 0, 0, 100), rl.Color.init(0, 255, 0, 255));
+            new_level.drawLevelDefinition(draw_region, rl.Color.init(255, 0, 0, 100), rl.Color.init(0, 255, 0, 255));
         }
 
         if (display_lines) {
-            visualization.draw(screen_width_map_ratio, screen_height_map_ratio, rl.Color.init(0, 0, 255, 100), rl.Color.init(255, 0, 0, 255));
+            // visualization.draw(screen_width_map_ratio, screen_height_map_ratio, rl.Color.init(0, 0, 255, 100), rl.Color.init(255, 0, 0, 255));
+            new_level.drawLevelVisualization(draw_region, rl.Color.init(255, 0, 0, 100), rl.Color.init(0, 255, 0, 255));
             const player_pos = rl.Vector2.init(camera.position.x * screen_width_map_ratio, camera.position.z * screen_height_map_ratio);
             const camera_orientation = camera.target.subtract(camera.position);
             const player_orientation = rl.Vector2.init(camera_orientation.x, camera_orientation.z).normalize();

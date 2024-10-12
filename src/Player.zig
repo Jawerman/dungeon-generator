@@ -1,5 +1,5 @@
 const rl = @import("raylib");
-const Level = @import("Level.zig");
+const Level = @import("./level/Level.zig");
 const Self = @This();
 const Rectangle = @import("Rectangle.zig");
 
@@ -27,41 +27,16 @@ pub fn init(radius: f32, walk_speed: f32, mouse_look_speed: rl.Vector2, keys_loo
 
 pub fn update(self: *Self, level: Level) void {
     _ = level;
-    self.target = self.getNewTargetPosition(rl.getMouseDelta().multiply(self.mouse_look_speed));
+    var mouse_delta_projected = rl.getMouseDelta();
+    mouse_delta_projected.y = 0.0;
+
+    self.target = self.getNewTargetPosition(mouse_delta_projected.multiply(self.mouse_look_speed));
     self.target = self.getNewTargetPosition(getViewInputVector().multiply(self.keys_look_speed));
     const position_increment = self.getPositionIncrement();
 
     // self.position = self.getFinalPosition(position_increment, level);
     self.position = self.position.add(position_increment);
     self.target = self.target.add(position_increment);
-}
-
-fn getFinalPosition(self: Self, position_increment: rl.Vector3, level: Level) rl.Vector3 {
-    const projected_increment = rl.Vector2.init(position_increment.x, position_increment.z);
-    const projected_increment_norm = projected_increment.normalize();
-
-    const initial_position = rl.Vector2.init(self.position.x, self.position.z);
-
-    const maybe_area_container: ?Rectangle = for (level.rooms.items) |room| {
-        if (room.area.contains(initial_position)) {
-            break room.area;
-        }
-    } else for (level.doors.items) |door| {
-        if (door.area.contains(initial_position)) {
-            break door.area;
-        }
-    } else null;
-
-    if (maybe_area_container) |area_container| {
-        const final_position = initial_position
-            .add(projected_increment)
-            .add(projected_increment_norm.scale(self.radius));
-
-        if (area_container.contains(final_position)) {
-            return self.position.add(position_increment);
-        }
-    }
-    return self.position;
 }
 
 fn getNewTargetPosition(self: Self, velocity: rl.Vector2) rl.Vector3 {

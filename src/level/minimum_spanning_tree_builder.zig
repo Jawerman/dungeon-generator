@@ -2,8 +2,8 @@ const std = @import("std");
 const BspNode = @import("BspNode.zig");
 const rl = @import("raylib");
 const Graph = @import("Graph.zig");
-const utils = @import("utils.zig");
-const Rectangle = @import("Rectangle.zig");
+const utils = @import("../utils.zig");
+const Rectangle = @import("../Rectangle.zig");
 
 const AreaConnectionCost = struct {
     area_index: usize,
